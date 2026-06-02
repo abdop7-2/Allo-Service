@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./AlloServiceLanding.css";
+import hero from "../assets/landing-hero.jpg";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1758899183465-6810516a3d0b?fm=jpg&q=70&w=2400&auto=format&fit=crop";
+const HERO_IMG = hero;
 
 const CATEGORIES = [
   { icon: "🔧", label: "Plomberie" },
@@ -92,7 +92,9 @@ export default function AlloServiceLanding() {
   };
 
   return (
+    
     <section className="as-hero">
+      
       <div
         className="as-hero__bg"
         role="img"
@@ -146,7 +148,9 @@ export default function AlloServiceLanding() {
             </button>
           ))}
         </div>
+
       </div>
+      
 
       <div className="as-stats">
         {STATS.map((s) => (

@@ -5,11 +5,11 @@ import hero from "../assets/landing-hero.jpg";
 const HERO_IMG = hero;
 
 const CATEGORIES = [
-  { icon: "🔧", label: "Plomberie" },
-  { icon: "⚡", label: "Électricité" },
-  { icon: "🪚", label: "Menuiserie" },
-  { icon: "🖌️", label: "Peinture" },
-  { icon: "🪣", label: "Carrelage" },
+  { label: "Plomberie" },
+  { label: "Électricité" },
+  { label: "Menuiserie" },
+  { label: "Peinture" },
+  { label: "Carrelage" },
 ];
 
 const STATS = [
@@ -85,12 +85,6 @@ export default function AlloServiceLanding() {
     return () => nodes.forEach((n) => n.remove());
   }, []);
 
-  const handleSearch = () => {
-    const v = query.trim();
-    // TODO: navigate to /providers?q=... or call your API here
-    alert(v ? `Recherche : "${v}"` : "Saisissez un service à rechercher.");
-  };
-
   return (
     
     <section className="as-hero">
@@ -110,16 +104,12 @@ export default function AlloServiceLanding() {
         </div>
         <div className="as-nav__links">
           <a className="as-nav__a" href="#">Comment ça marche</a>
-          <a className="as-nav__a" href="#">Services</a>
           <button className="as-btn as-btn--ghost">Connexion</button>
           <button className="as-burger" aria-label="Menu">&#9776;</button>
         </div>
       </nav>
 
       <div className="as-hero__content">
-        <span className="as-eyebrow">
-          <span className="as-pulse" /> +500 artisans vérifiés à Casablanca
-        </span>
         <h1 className="as-h1">
           Trouvez l'artisan <span className="as-accent">idéal</span>, près de chez vous
         </h1>
@@ -127,20 +117,6 @@ export default function AlloServiceLanding() {
           Plombiers, électriciens, menuisiers et peintres de confiance — disponibles
           aujourd'hui, partout à Casablanca.
         </p>
-
-        <div className="as-search">
-          <span className="as-search__icon">&#128269;</span>
-          <input
-            type="text"
-            placeholder="Quel service recherchez-vous ?"
-            aria-label="Rechercher un service"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <button onClick={handleSearch}>Rechercher</button>
-        </div>
-
         <div className="as-chips">
           {CATEGORIES.map((c) => (
             <button key={c.label} className="as-chip">

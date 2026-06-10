@@ -3,6 +3,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const LoginPage = () => {
   const [isActive, setIsActive] = useState(false);
+  const [role, setRole] = useState('client');
 
   const handleRegisterClick = () => setIsActive(true);
   const handleLoginClick = () => setIsActive(false);
@@ -140,21 +141,6 @@ const LoginPage = () => {
             }
         }
 
-        .social-icons{
-            margin: 20px 0;
-        }
-
-        .social-icons a{
-            border: 1px solid #ccc;
-            border-radius: 20%;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0 3px;
-            width: 40px;
-            height: 40px;
-        }
-
         .toggle-container{
             position: absolute;
             top: 0;
@@ -220,88 +206,133 @@ const LoginPage = () => {
         .container.active .toggle-right{
             transform: translateX(200%);
         }
+
+        .role-selector{
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+            width: 100%;
+        }
+
+        .role-selector label{
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .role-selector input[type="radio"]{
+            display: none;
+        }
+
+        .role-selector label.selected{
+            border-color: #2da0a8;
+            background-color: #e8f7f8;
+            color: #2da0a8;
+        }
+
+        .signin-footer{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+            margin-top: 10px;
+            white-space: nowrap;
+        }
+
+        .signin-footer a{
+            margin: 0;
+            color: #2da0a8;
+            font-weight: 600;
+        }
       `}</style>
 
       <div className={`container ${isActive ? 'active' : ''}`}>
-        {/* Sign Up Form */}
+        {/* Formulaire Inscription */}
         <div className="form-container sign-up">
           <form>
-            <h1>Create Account</h1>
-            <div className="social-icons">
-              <a href="#" className="icon">
-                <i className="fa-brands fa-google-plus-g"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-facebook-f"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-github"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-linkedin-in"></i>
-              </a>
+            <h1>Créer un compte</h1>
+            <span>Vous êtes :</span>
+            <div className="role-selector">
+              <label className={role === 'client' ? 'selected' : ''}>
+                <input
+                  type="radio"
+                  name="role"
+                  value="client"
+                  checked={role === 'client'}
+                  onChange={() => setRole('client')}
+                />
+                <i className="fa-solid fa-user"></i> Client
+              </label>
+              <label className={role === 'prestataire' ? 'selected' : ''}>
+                <input
+                  type="radio"
+                  name="role"
+                  value="prestataire"
+                  checked={role === 'prestataire'}
+                  onChange={() => setRole('prestataire')}
+                />
+                <i className="fa-solid fa-briefcase"></i> Prestataire
+              </label>
             </div>
-            <span>or use your email for registeration</span>
-            <input type="text" placeholder="Name" />
-            <input type="email" placeholder="Email" />
-            <input type="password" placeholder="Password" />
-            <button type="button">Sign Up</button>
+            <input type="text" placeholder="Nom complet" />
+            <input type="email" placeholder="Adresse e-mail" />
+            <input type="tel" placeholder="Téléphone (optionnel)" />
+            <input type="password" placeholder="Mot de passe" />
+            <button type="button">S'inscrire</button>
           </form>
         </div>
 
-        {/* Sign In Form */}
+        {/* Formulaire Connexion */}
         <div className="form-container sign-in">
           <form>
-            <h1>Sign In</h1>
-            <div className="social-icons">
-              <a href="#" className="icon">
-                <i className="fa-brands fa-google-plus-g"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-facebook-f"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-github"></i>
-              </a>
-              <a href="#" className="icon">
-                <i className="fa-brands fa-linkedin-in"></i>
-              </a>
+            <h1>Connexion</h1>
+            <span>Connectez-vous avec votre e-mail</span>
+            <input type="email" placeholder="Adresse e-mail" />
+            <input type="password" placeholder="Mot de passe" />
+            <a href="#">Mot de passe oublié ?</a>
+            <button type="button">Se connecter</button>
+            <div className="signin-footer">
+              <span>Pas encore de compte ?</span>
+              <a href="#" onClick={(e) => { e.preventDefault(); handleRegisterClick(); }}>Créer un compte</a>
             </div>
-            <span>or use your email password</span>
-            <input type="email" placeholder="Email" />
-            <input type="password" placeholder="Password" />
-            <a href="#">Forget Your Password?</a>
-            <button type="button">Sign In</button>
           </form>
         </div>
 
-        {/* Toggle Container */}
+        {/* Panneau de bascule */}
         <div className="toggle-container">
           <div className="toggle">
             <div className="toggle-panel toggle-left">
-              <h1>Welcome Back!</h1>
-              <p>Enter your personal details to use all of site features</p>
+              <h1>Bon retour !</h1>
+              <p>Connectez-vous pour accéder à toutes les fonctionnalités</p>
               <button
                 type="button"
                 className="hidden"
-                id="login"
                 onClick={handleLoginClick}
               >
-                Sign In
+                Se connecter
               </button>
             </div>
             <div className="toggle-panel toggle-right">
-              <h1>Hello, Friend!</h1>
+              <h1>Bienvenue !</h1>
               <p>
-                Register with your personal details to use all of site features
+                Inscrivez-vous et trouvez les meilleurs prestataires près de chez vous
               </p>
               <button
                 type="button"
                 className="hidden"
-                id="register"
                 onClick={handleRegisterClick}
               >
-                Sign Up
+                S'inscrire
               </button>
             </div>
           </div>

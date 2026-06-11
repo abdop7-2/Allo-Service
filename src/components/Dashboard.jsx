@@ -850,7 +850,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
                     ? <span style={{ fontWeight:600, color:'#2563eb' }}>{d.offres.length} devis</span>
                     : <span style={{ color:'#94a3b8' }}>—</span>}
                 </td>
-                <td style={S.td}>{d.city}</td>
+                <td style={S.td}>{d.city || '—'}</td>
                 <td style={S.td}>{fmtDate(d.date_souhaitee)}</td>
                 <td style={S.td}><Badge statut={d.statut} /></td>
                 <td style={S.td}>
@@ -1177,7 +1177,7 @@ function BrowseDemandes({ categories }) {
               <span style={{ fontWeight: 700, fontSize: 15 }}>{d.title}</span>
               <Badge statut={d.statut} />
             </div>
-            <span style={{ fontSize: 12, color:'#64748b' }}>{d.category?.nom} · {d.city}</span>
+            <span style={{ fontSize: 12, color:'#64748b' }}>{d.category?.nom}{d.city ? ` · ${d.city}` : ''}</span>
             <p style={{ fontSize: 13, color:'#475569', lineHeight: 1.5, margin: 0,
               display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{d.description}</p>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>

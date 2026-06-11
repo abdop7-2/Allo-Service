@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import api from '../api';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isActive, setIsActive] = useState(false);
   const [role, setRole] = useState('client');
 
@@ -18,6 +19,18 @@ const LoginPage = () => {
 
   const handleRegisterClick = () => setIsActive(true);
   const handleLoginClick    = () => setIsActive(false);
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'google_failed') {
+      setLoginError('La connexion avec Google a échoué. Veuillez réessayer.');
+    }
+  }, [searchParams]);
+
+  // full-page navigation: the OAuth dance is handled by the backend
+  const googleLogin = (selectedRole) => {
+    const base = api.defaults.baseURL.replace(/\/$/, '');
+    window.location.href = `${base}/api/auth/google${selectedRole ? `?role=${selectedRole}` : ''}`;
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -253,6 +266,50 @@ const LoginPage = () => {
           color: #2da0a8;
         }
 
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          width: 100%;
+          margin: 12px 0 2px;
+          color: #aaa;
+          font-size: 12px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: #e2e2e2;
+        }
+
+        .auth-divider span { padding: 0 10px; }
+
+        .auth-container button.auth-google-btn {
+          background-color: #fff;
+          color: #333;
+          border: 1.5px solid #ddd;
+          text-transform: none;
+          font-size: 13px;
+          padding: 10px 24px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 8px;
+        }
+
+        .auth-container button.auth-google-btn:hover {
+          background-color: #f7f7f7;
+          border-color: #ccc;
+        }
+
+        .auth-container button.auth-google-btn i {
+          color: #ea4335;
+          font-size: 15px;
+        }
+
         .auth-signin-footer {
           display: flex;
           align-items: center;
@@ -294,6 +351,10 @@ const LoginPage = () => {
               <input type="tel"      placeholder="Téléphone (optionnel)" value={regData.phone}    onChange={e => setRegData(d => ({ ...d, phone: e.target.value }))} />
               <input type="password" placeholder="Mot de passe"          value={regData.password} onChange={e => setRegData(d => ({ ...d, password: e.target.value }))} required />
               <button type="submit" disabled={regLoading}>{regLoading ? 'Inscription...' : "S'inscrire"}</button>
+              <div className="auth-divider"><span>ou</span></div>
+              <button type="button" className="auth-google-btn" onClick={() => googleLogin(role)}>
+                <i className="fa-brands fa-google"></i> S'inscrire avec Google
+              </button>
             </form>
           </div>
 
@@ -307,6 +368,10 @@ const LoginPage = () => {
               <input type="password" placeholder="Mot de passe"   value={loginData.password} onChange={e => setLoginData(d => ({ ...d, password: e.target.value }))} required />
               <a href="#">Mot de passe oublié ?</a>
               <button type="submit" disabled={loginLoading}>{loginLoading ? 'Connexion...' : 'Se connecter'}</button>
+              <div className="auth-divider"><span>ou</span></div>
+              <button type="button" className="auth-google-btn" onClick={() => googleLogin()}>
+                <i className="fa-brands fa-google"></i> Continuer avec Google
+              </button>
               <div className="auth-signin-footer">
                 <span>Pas encore de compte ?</span>
                 <a href="#" onClick={e => { e.preventDefault(); handleRegisterClick(); }}>Créer un compte</a>

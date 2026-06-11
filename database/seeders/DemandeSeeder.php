@@ -47,9 +47,9 @@ class DemandeSeeder extends Seeder
             ],
             [
                 'client_id'      => $bob->id,
-                'category_id'    => 6,
-                'title'          => 'Ménage complet appartement',
-                'description'    => 'Nettoyage complet d\'un appartement F3 avant emménagement. 75m².',
+                'category_id'    => 5,
+                'title'          => 'Installation climatiseur salon',
+                'description'    => 'Installation d\'un climatiseur split dans le salon (30m²). Fourniture et pose.',
                 'budget'         => 200.00,
                 'city'           => 'Oran',
                 'date_souhaitee' => now()->addDays(5)->toDateString(),
@@ -57,7 +57,7 @@ class DemandeSeeder extends Seeder
             ],
             [
                 'client_id'      => $claire->id,
-                'category_id'    => 9,
+                'category_id'    => 6,
                 'title'          => 'Fabrication d\'une bibliothèque sur mesure',
                 'description'    => 'Bibliothèque murale 3m x 2.5m en bois, avec portes basses. Style moderne.',
                 'budget'         => 1200.00,

@@ -14,12 +14,8 @@ class CategorySeeder extends Seeder
             ['nom' => 'Électricité',      'icone' => 'bolt'],
             ['nom' => 'Peinture',         'icone' => 'paint-roller'],
             ['nom' => 'Jardinage',        'icone' => 'leaf'],
-            ['nom' => 'Déménagement',     'icone' => 'truck'],
-            ['nom' => 'Ménage',           'icone' => 'broom'],
-            ['nom' => 'Informatique',     'icone' => 'laptop'],
             ['nom' => 'Climatisation',    'icone' => 'snowflake'],
             ['nom' => 'Menuiserie',       'icone' => 'hammer'],
-            ['nom' => 'Maçonnerie',       'icone' => 'building'],
         ];
 
         DB::table('categories')->insert(array_map(fn($c) => array_merge($c, [

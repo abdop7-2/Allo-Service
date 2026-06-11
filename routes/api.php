@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Prestataires
     Route::get('/prestataires',                   [PrestataireController::class, 'index']);
+    Route::get('/prestataires/{id}/stats',        [PrestataireController::class, 'stats']);
     Route::get('/prestataires/{id}',              [PrestataireController::class, 'show']);
     Route::match(['post', 'put'], '/prestataires/profile', [PrestataireController::class, 'updateProfile']);
 

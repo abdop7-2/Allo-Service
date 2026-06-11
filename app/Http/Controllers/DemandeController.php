@@ -28,7 +28,7 @@ class DemandeController extends Controller
             'title'          => 'required|string|max:150',
             'description'    => 'required|string|max:2000',
             'category_id'    => 'required|exists:categories,id',
-            'budget'         => 'required|numeric|min:1|max:999999',
+            'budget'         => 'nullable|numeric|min:1|max:999999',
             'city'           => 'nullable|string|max:100',
             'date_souhaitee' => 'required|date|after:today',
         ]);

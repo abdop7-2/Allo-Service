@@ -35,14 +35,14 @@ class PrestataireProfileSeeder extends Seeder
             ],
             [
                 'email'        => 'sophie@example.com',
-                'category_id'  => 6, // Ménage
-                'bio'          => 'Service de ménage et nettoyage professionnel à domicile.',
+                'category_id'  => 5, // Climatisation
+                'bio'          => 'Technicienne en climatisation et chauffage : installation, entretien et dépannage.',
                 'availability' => true,
                 'rating_avg'   => 4.70,
             ],
             [
                 'email'        => 'yacine@example.com',
-                'category_id'  => 9, // Menuiserie
+                'category_id'  => 6, // Menuiserie
                 'bio'          => 'Menuisier ébéniste, fabrication et pose de meubles sur mesure.',
                 'availability' => true,
                 'rating_avg'   => 4.60,

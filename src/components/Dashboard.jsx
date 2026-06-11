@@ -4,7 +4,7 @@ import api from '../api';
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 const user = () => JSON.parse(localStorage.getItem('user') || 'null');
-const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'DZD', maximumFractionDigits: 0 }).format(n);
+const fmt = (n) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 }).format(n);
 const fmtBudget = (b) => (b ? fmt(b) : 'À négocier');
 const fmtDate = (d) => new Date(d).toLocaleDateString('fr-FR');
 const isNewMember = (createdAt) => {
@@ -30,7 +30,9 @@ function Badge({ statut }) {
       border: `1px solid ${s.color}30`,
       borderRadius: 6, padding: '3px 9px',
       fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em',
-      whiteSpace: 'nowrap',
+      whiteSpace: 'nowrap', lineHeight: 1.4,
+      // keep the pill its natural size inside flex rows (no vertical stretch)
+      alignSelf: 'center', flexShrink: 0, display: 'inline-block',
     }}>
       {s.text}
     </span>
@@ -892,7 +894,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
               </span>
             </div>
             <label style={S.label}>Ville</label>
-            <input style={S.input} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Ex: Alger" />
+            <input style={S.input} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Ex: Casablanca" />
             <label style={S.label}>Date souhaitée *</label>
             <input style={S.input} type="date" value={form.date_souhaitee} onChange={e => set('date_souhaitee', e.target.value)} />
             <div style={{ display:'flex', gap: 10, marginTop: 8 }}>
@@ -1171,7 +1173,7 @@ function BrowseDemandes({ categories }) {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:16 }}>
         {filtered.map(d => (
           <div key={d.id} style={{ ...S.card, display:'flex', flexDirection:'column', gap: 8 }}>
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap: 8 }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>{d.title}</span>
               <Badge statut={d.statut} />
             </div>
@@ -1211,7 +1213,7 @@ function BrowseDemandes({ categories }) {
                 color:'#94a3b8', cursor:'pointer', lineHeight:1, marginLeft:12 }}>×</button>
             </div>
             {error && <div style={S.alert('error')}>{error}</div>}
-            <label style={S.label}>Votre devis (DA) *</label>
+            <label style={S.label}>Votre devis (MAD) *</label>
             <input style={S.input} type="number" value={offreForm.devis} onChange={e => setOffreForm(f => ({...f, devis:e.target.value}))} placeholder="Ex: 4500" />
             <label style={S.label}>Message *</label>
             <textarea style={{ ...S.input, minHeight: 90, resize:'vertical' }} value={offreForm.message}
@@ -1273,10 +1275,30 @@ function MesOffres({ offres, onDeleted }) {
 }
 
 function MonProfil({ profile, categories, onSaved }) {
+  const [me] = useState(() => user() || {});
   const [form, setForm] = useState({ category_id: profile?.category_id || '', bio: profile?.bio || '', availability: profile?.availability ?? true });
+  const [stats, setStats] = useState(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const set = (k,v) => setForm(f => ({...f,[k]:v}));
+
+  // profile loads async — sync the form when it arrives
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        category_id: profile.category_id || '',
+        bio: profile.bio || '',
+        availability: profile.availability ?? true,
+      });
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (!me.id) return;
+    api.get(`/api/prestataires/${me.id}/stats`)
+      .then(r => setStats(r.data))
+      .catch(() => {});
+  }, [me.id]);
 
   const save = async () => {
     setError(''); setSaved(false);
@@ -1286,34 +1308,137 @@ function MonProfil({ profile, categories, onSaved }) {
     } catch (e) { setError(e.response?.data?.message || 'Erreur.'); }
   };
 
+  const initials = me.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
+  const categoryName = categories.find(c => c.id === Number(form.category_id))?.nom || profile?.category?.nom;
+  const memberSince = stats?.member_since || me.created_at;
+  const rating = stats?.note;
+
+  const contactRow = (label, value) => (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 0',
+      borderBottom:'1px solid #f8fafc', gap: 12 }}>
+      <span style={{ fontSize: 12, color:'#94a3b8', fontWeight: 500, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color:'#0f172a', fontWeight: 500, textAlign:'right', overflow:'hidden',
+        textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{value || '—'}</span>
+    </div>
+  );
+
   return (
-    <>
-      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
-        <span style={S.sectionTitle}>Mon profil prestataire</span>
-      </div>
-      <div style={{ ...S.card, maxWidth: 520 }}>
-        {error  && <div style={S.alert('error')}>{error}</div>}
-        {saved  && <div style={S.alert('success')}>Profil mis à jour avec succès.</div>}
-        <label style={S.label}>Catégorie de service *</label>
-        <select style={S.input} value={form.category_id} onChange={e => set('category_id', e.target.value)}>
-          <option value="">-- Choisir --</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-        </select>
-        <label style={S.label}>Bio</label>
-        <textarea style={{ ...S.input, minHeight: 100, resize:'vertical' }} value={form.bio}
-          onChange={e => set('bio', e.target.value)} placeholder="Décrivez vos compétences et expériences..." />
-        <label style={S.label}>Disponibilité</label>
-        <div style={{ display:'flex', gap: 12, marginBottom: 16 }}>
-          {[true, false].map(v => (
-            <label key={String(v)} style={{ display:'flex', alignItems:'center', gap: 6, cursor:'pointer', fontSize: 14 }}>
-              <input type="radio" checked={form.availability === v} onChange={() => set('availability', v)} />
-              {v ? 'Disponible' : 'Indisponible'}
-            </label>
-          ))}
+    <div style={{ display:'grid', gridTemplateColumns:'330px 1fr', gap: 14, alignItems:'start' }}>
+
+      {/* ── Identity card ── */}
+      <div style={{ ...S.card, padding: 0, overflow:'hidden' }}>
+        <div style={{ height: 80, background:'linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)' }} />
+        <div style={{ padding:'0 20px 20px' }}>
+          {me.avatar ? (
+            <img src={me.avatar} alt={me.name} style={{
+              width: 64, height: 64, borderRadius: 16, objectFit:'cover',
+              border:'3px solid #fff', marginTop: -32, boxShadow:'0 2px 8px rgba(15,23,42,0.15)' }} />
+          ) : (
+            <div style={{
+              width: 64, height: 64, borderRadius: 16, background:'#0d9488',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize: 22, fontWeight: 700, color:'#fff',
+              border:'3px solid #fff', marginTop: -32, boxShadow:'0 2px 8px rgba(15,23,42,0.15)' }}>
+              {initials}
+            </div>
+          )}
+
+          <div style={{ fontSize: 17, fontWeight: 800, color:'#0f172a', marginTop: 10, letterSpacing:'-0.3px' }}>
+            {me.name}
+          </div>
+          <div style={{ fontSize: 12.5, color:'#64748b', marginTop: 2 }}>
+            {categoryName || 'Catégorie non définie'}
+          </div>
+
+          <div style={{ display:'flex', gap: 6, marginTop: 12, flexWrap:'wrap' }}>
+            <span style={{ padding:'3px 10px', fontSize: 11.5, borderRadius: 20, fontWeight: 600,
+              background: form.availability ? '#d1fae5' : '#f1f5f9',
+              color: form.availability ? '#059669' : '#94a3b8' }}>
+              {form.availability ? '● Disponible' : '○ Indisponible'}
+            </span>
+            {rating && (
+              <span style={{ padding:'3px 10px', fontSize: 11.5, borderRadius: 20, fontWeight: 600,
+                background:'#fef9c3', color:'#a16207' }}>
+                ★ {rating} / 5
+              </span>
+            )}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            {contactRow('E-mail', me.email)}
+            {contactRow('Téléphone', me.phone)}
+            {contactRow('Membre depuis', memberSince ? fmtDate(memberSince) : null)}
+            {contactRow('Avis reçus', stats ? `${stats.avis_count}` : null)}
+          </div>
+
+          {/* mini stats */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginTop: 14 }}>
+            {[
+              { label:'Missions terminées', val: stats?.missions_terminees ?? '—', color:'#2563eb' },
+              { label:'Offres envoyées',    val: stats?.offres_total ?? '—',      color:'#0d9488' },
+              { label:'Offres acceptées',   val: stats?.offres_acceptees ?? '—',  color:'#10b981' },
+              { label:'Taux de réussite',   val: stats ? `${stats.taux_acceptation}%` : '—', color:'#f59e0b' },
+            ].map(t => (
+              <div key={t.label} style={{ background:'#f8fafc', borderRadius: 10, padding:'10px 12px' }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: t.color, letterSpacing:'-0.4px' }}>{t.val}</div>
+                <div style={{ fontSize: 10.5, color:'#94a3b8', marginTop: 2, fontWeight: 500 }}>{t.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <button style={S.btn()} onClick={save}>Enregistrer</button>
       </div>
-    </>
+
+      {/* ── Right column : à propos + edit form ── */}
+      <div style={{ display:'flex', flexDirection:'column', gap: 14 }}>
+
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom: 10 }}>
+            <span style={S.sectionTitle}>À propos</span>
+          </div>
+          <p style={{ fontSize: 13.5, color: form.bio ? '#475569' : '#cbd5e1', lineHeight: 1.65, margin: 0 }}>
+            {form.bio || 'Aucune description pour le moment — présentez-vous ci-dessous pour inspirer confiance aux clients.'}
+          </p>
+        </div>
+
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
+            <span style={S.sectionTitle}>Modifier mon profil</span>
+          </div>
+          {error  && <div style={S.alert('error')}>{error}</div>}
+          {saved  && <div style={S.alert('success')}>Profil mis à jour avec succès.</div>}
+
+          <label style={S.label}>Catégorie de service *</label>
+          <select style={S.input} value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+            <option value="">-- Choisir --</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          </select>
+
+          <label style={S.label}>Présentation (bio)</label>
+          <textarea style={{ ...S.input, minHeight: 110, resize:'vertical' }} value={form.bio}
+            onChange={e => set('bio', e.target.value)}
+            placeholder="Ex : Plombier certifié avec 8 ans d'expérience. Interventions rapides, devis gratuit, travail garanti..." />
+
+          <label style={S.label}>Disponibilité</label>
+          <div style={{ display:'flex', gap: 10, marginBottom: 16 }}>
+            {[true, false].map(v => (
+              <label key={String(v)} style={{
+                flex: 1, display:'flex', alignItems:'center', justifyContent:'center', gap: 7,
+                padding:'10px 12px', borderRadius: 8, cursor:'pointer', fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${form.availability === v ? (v ? '#10b981' : '#ef4444') : '#e2e8f0'}`,
+                background: form.availability === v ? (v ? '#ecfdf5' : '#fef2f2') : '#fff',
+                color: form.availability === v ? (v ? '#059669' : '#dc2626') : '#64748b',
+                transition: 'all 0.15s' }}>
+                <input type="radio" style={{ display:'none' }}
+                  checked={form.availability === v} onChange={() => set('availability', v)} />
+                {v ? '● Disponible' : '○ Indisponible'}
+              </label>
+            ))}
+          </div>
+
+          <button style={{ ...S.btn(), padding:'10px 22px' }} onClick={save}>Enregistrer les modifications</button>
+        </div>
+      </div>
+    </div>
   );
 }
 

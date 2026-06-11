@@ -391,7 +391,7 @@ function ClientFeed({ categories, onNewDemande }) {
           <option value="">Toutes les catégories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
         </select>
-        <button style={S.btn()} onClick={onNewDemande}>+ Publier une demande</button>
+        <button style={S.btn()} onClick={() => onNewDemande(null)}>+ Publier une demande</button>
       </div>
 
       {/* Category chips */}
@@ -622,7 +622,7 @@ function ClientFeed({ categories, onNewDemande }) {
             )}
 
             <button style={{ ...S.btn(), width:'100%', padding:'11px', fontSize:14 }}
-              onClick={() => { setSelected(null); onNewDemande(); }}>
+              onClick={() => { const p = selected; setSelected(null); onNewDemande(p); }}>
               Publier une demande à ce prestataire
             </button>
           </div>
@@ -788,7 +788,7 @@ function ClientOverview({ demandes, offres }) {
                   background: STATUT_LABEL[d.statut]?.color || '#94a3b8' }} />
                 <div>
                   <div style={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{d.title}</div>
-                  <div style={{ fontSize:11, color:'#94a3b8' }}>{fmtBudget(d.budget)}{d.city ? ` · ${d.city}` : ''}</div>
+                  <div style={{ fontSize:11, color:'#94a3b8' }}>{fmtBudget(d.budget)}</div>
                 </div>
               </div>
               <Badge statut={d.statut} />
@@ -800,20 +800,40 @@ function ClientOverview({ demandes, offres }) {
   );
 }
 
-function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
+function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, onIntentConsumed }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ title:'', description:'', category_id:'', city:'', date_souhaitee:'' });
+  const [form, setForm] = useState({ title:'', description:'', category_id:'', date_souhaitee:'' });
+  // set when arriving from a prestataire profile: category is imposed by their profession
+  const [lockedCat, setLockedCat] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    if (!intent) return;
+    if (intent.categoryId) {
+      setForm(f => ({ ...f, category_id: String(intent.categoryId) }));
+      setLockedCat({ name: intent.categoryName, prestataire: intent.prestataireName });
+    } else {
+      setLockedCat(null);
+    }
+    setShowModal(true);
+    onIntentConsumed && onIntentConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent]);
+
+  const closeModal = () => {
+    setShowModal(false);
+    setLockedCat(null);
+  };
 
   const submit = async () => {
     setLoading(true); setError('');
     try {
       await api.post('/api/demandes', form);
-      setShowModal(false);
-      setForm({ title:'', description:'', category_id:'', city:'', date_souhaitee:'' });
+      closeModal();
+      setForm({ title:'', description:'', category_id:'', date_souhaitee:'' });
       onCreated();
     } catch (e) {
       setError(e.response?.data?.message || 'Erreur lors de la création.');
@@ -830,13 +850,13 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
     <>
       <div style={S.sectionHeader}>
         <span style={S.sectionTitle}>Mes demandes <span style={{ color:'#94a3b8', fontWeight:400 }}>({demandes.length})</span></span>
-        <button style={S.btn()} onClick={() => setShowModal(true)}>+ Nouvelle demande</button>
+        <button style={S.btn()} onClick={() => { setLockedCat(null); setShowModal(true); }}>+ Nouvelle demande</button>
       </div>
       <div style={S.card}>
         <table style={S.table}>
           <thead>
             <tr>
-              {['Titre','Catégorie','Offres reçues','Ville','Date souhaitée','Statut',''].map(h =>
+              {['Titre','Catégorie','Offres reçues','Date souhaitée','Statut',''].map(h =>
                 <th key={h} style={S.th}>{h}</th>)}
             </tr>
           </thead>
@@ -850,7 +870,6 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
                     ? <span style={{ fontWeight:600, color:'#2563eb' }}>{d.offres.length} devis</span>
                     : <span style={{ color:'#94a3b8' }}>—</span>}
                 </td>
-                <td style={S.td}>{d.city || '—'}</td>
                 <td style={S.td}>{fmtDate(d.date_souhaitee)}</td>
                 <td style={S.td}><Badge statut={d.statut} /></td>
                 <td style={S.td}>
@@ -861,27 +880,41 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
                 </td>
               </tr>
             ))}
-            {demandes.length === 0 && <tr><td colSpan={7} style={{ ...S.td, textAlign:'center', color:'#94a3b8' }}>Aucune demande.</td></tr>}
+            {demandes.length === 0 && <tr><td colSpan={6} style={{ ...S.td, textAlign:'center', color:'#94a3b8' }}>Aucune demande.</td></tr>}
           </tbody>
         </table>
       </div>
 
       {showModal && (
-        <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && closeModal()}>
           <div style={S.modalBox}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 20 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Nouvelle demande</h3>
-              <button onClick={() => setShowModal(false)} style={{ background:'none', border:'none', fontSize:20,
+              <button onClick={closeModal} style={{ background:'none', border:'none', fontSize:20,
                 color:'#94a3b8', cursor:'pointer', lineHeight:1 }}>×</button>
             </div>
             {error && <div style={S.alert('error')}>{error}</div>}
+            {lockedCat && (
+              <div style={{ display:'flex', gap: 10, alignItems:'flex-start', background:'#f0fdf4',
+                border:'1px solid #bbf7d0', borderRadius: 8, padding:'10px 12px', marginBottom: 12 }}>
+                <span style={{ fontSize: 15, lineHeight: 1 }}>👤</span>
+                <span style={{ fontSize: 12.5, color:'#166534', lineHeight: 1.45 }}>
+                  Demande destinée à <strong>{lockedCat.prestataire}</strong> — la catégorie
+                  <strong> {lockedCat.name}</strong> correspond à sa profession.
+                </span>
+              </div>
+            )}
             <label style={S.label}>Titre *</label>
             <input style={S.input} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Ex: Fuite d'eau cuisine" />
             <label style={S.label}>Description *</label>
             <textarea style={{ ...S.input, minHeight: 80, resize:'vertical' }} value={form.description}
               onChange={e => set('description', e.target.value)} placeholder="Décrivez votre problème..." />
             <label style={S.label}>Catégorie *</label>
-            <select style={S.input} value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+            <select
+              style={{ ...S.input, ...(lockedCat ? { background:'#f8fafc', color:'#64748b', cursor:'not-allowed' } : {}) }}
+              value={form.category_id}
+              disabled={!!lockedCat}
+              onChange={e => set('category_id', e.target.value)}>
               <option value="">-- Choisir --</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
             </select>
@@ -893,13 +926,11 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
                 et vous choisirez la meilleure offre.
               </span>
             </div>
-            <label style={S.label}>Ville</label>
-            <input style={S.input} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Ex: Casablanca" />
             <label style={S.label}>Date souhaitée *</label>
             <input style={S.input} type="date" value={form.date_souhaitee} onChange={e => set('date_souhaitee', e.target.value)} />
             <div style={{ display:'flex', gap: 10, marginTop: 8 }}>
               <button style={S.btn()} onClick={submit} disabled={loading}>{loading ? 'Envoi...' : 'Publier'}</button>
-              <button style={S.btn('ghost')} onClick={() => setShowModal(false)}>Annuler</button>
+              <button style={S.btn('ghost')} onClick={closeModal}>Annuler</button>
             </div>
           </div>
         </div>
@@ -1177,7 +1208,7 @@ function BrowseDemandes({ categories }) {
               <span style={{ fontWeight: 700, fontSize: 15 }}>{d.title}</span>
               <Badge statut={d.statut} />
             </div>
-            <span style={{ fontSize: 12, color:'#64748b' }}>{d.category?.nom}{d.city ? ` · ${d.city}` : ''}</span>
+            <span style={{ fontSize: 12, color:'#64748b' }}>{d.category?.nom}</span>
             <p style={{ fontSize: 13, color:'#475569', lineHeight: 1.5, margin: 0,
               display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{d.description}</p>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -1705,6 +1736,9 @@ export default function Dashboard() {
     return u?.role === 'client' ? 'feed' : 'overview';
   });
   const [showNotif, setShowNotif] = useState(false);
+  // set when the client clicks "publier une demande" from the feed —
+  // opens the form directly, optionally locked to a prestataire's category
+  const [demandeIntent, setDemandeIntent] = useState(null);
 
   // shared data
   const [demandes, setDemandes] = useState([]);
@@ -1775,9 +1809,18 @@ export default function Dashboard() {
   const renderSection = () => {
     if (section === 'compte') return <MonCompte />;
     if (isClient) {
-      if (section === 'feed')     return <ClientFeed categories={categories} onNewDemande={() => setSection('demandes')} />;
+      if (section === 'feed')     return <ClientFeed categories={categories}
+        onNewDemande={(presta) => {
+          setDemandeIntent({
+            categoryId: presta?.category_id || null,
+            categoryName: presta?.category?.nom || null,
+            prestataireName: presta?.name || null,
+          });
+          setSection('demandes');
+        }} />;
       if (section === 'overview') return <ClientOverview demandes={demandes} offres={offres} />;
       if (section === 'demandes') return <ClientDemandes demandes={demandes} categories={categories}
+        intent={demandeIntent} onIntentConsumed={() => setDemandeIntent(null)}
         onCreated={loadData} onDeleted={id => setDemandes(d => d.filter(x => x.id !== id))} />;
       if (section === 'offres')   return <ClientOffres demandes={demandes} onAccept={handleAcceptOffre} onRefuse={handleRefuseOffre} />;
       if (section === 'avis')     return <ClientAvis offres={demandes.flatMap(d => (d.offres||[]).map(o => ({...o, demande: d})))} />;

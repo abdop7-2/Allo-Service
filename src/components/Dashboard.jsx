@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from './api';
+import api from '../api';
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 const user = () => JSON.parse(localStorage.getItem('user') || 'null');
@@ -569,7 +569,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
     loadData();
-  }, []);
+  }, [loadData]);
 
   const loadData = useCallback(async () => {
     try {
@@ -593,14 +593,14 @@ export default function Dashboard() {
       }
 
       if (currentUser?.role === 'prestataire') {
-        const [presRes, avisRes] = await Promise.all([
+        const [presRes, avisRes, offresRes] = await Promise.all([
           api.get(`/api/prestataires/${currentUser.id}`).catch(() => ({ data: null })),
           api.get(`/api/prestataires/${currentUser.id}/avis`).catch(() => ({ data: [] })),
+          api.get('/api/offres/mes-offres').catch(() => ({ data: [] })),
         ]);
         setProfile(presRes.data);
-        const avisRaw = avisRes.data?.data || avisRes.data || [];
-        setAvis(avisRaw);
-        // offres: there's no direct "my offres" endpoint, we rely on browse section
+        setAvis(avisRes.data?.data || avisRes.data || []);
+        setOffres(offresRes.data?.data || offresRes.data || []);
       }
     } catch (e) {
       if (e.response?.status === 401) { localStorage.clear(); navigate('/login'); }
@@ -631,7 +631,7 @@ export default function Dashboard() {
       if (section === 'demandes') return <ClientDemandes demandes={demandes} categories={categories}
         onCreated={loadData} onDeleted={id => setDemandes(d => d.filter(x => x.id !== id))} />;
       if (section === 'offres')   return <ClientOffres demandes={demandes} onAccept={handleAcceptOffre} onRefuse={handleRefuseOffre} />;
-      if (section === 'avis')     return <ClientAvis offres={offres} />;
+      if (section === 'avis')     return <ClientAvis offres={demandes.flatMap(d => (d.offres||[]).map(o => ({...o, demande: d})))} />;
     } else {
       if (section === 'overview')  return <PresOverview offres={offres} avis={avis} profile={profile} />;
       if (section === 'browse')    return <BrowseDemandes categories={categories} />;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import api from './api';
+import api from '../api';
 
 const LoginPage = () => {
   const navigate = useNavigate();

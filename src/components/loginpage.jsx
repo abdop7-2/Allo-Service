@@ -77,6 +77,10 @@ const LoginPage = () => {
           box-sizing: border-box;
           margin: 0;
           padding: 0;
+        }
+
+        /* form controls don't inherit fonts; icons (<i>) keep the Font Awesome face */
+        .auth-page input, .auth-page button, .auth-page select, .auth-page textarea {
           font-family: 'Montserrat', sans-serif;
         }
 

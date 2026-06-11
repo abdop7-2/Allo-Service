@@ -804,7 +804,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, on
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ title:'', description:'', category_id:'', date_souhaitee:'' });
+  const [form, setForm] = useState({ title:'', description:'', category_id:'', prestataire_id:'', date_souhaitee:'' });
   // set when arriving from a prestataire profile: category is imposed by their profession
   const [lockedCat, setLockedCat] = useState(null);
 
@@ -813,10 +813,11 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, on
   useEffect(() => {
     if (!intent) return;
     if (intent.categoryId) {
-      setForm(f => ({ ...f, category_id: String(intent.categoryId) }));
+      setForm(f => ({ ...f, category_id: String(intent.categoryId), prestataire_id: intent.prestataireId || '' }));
       setLockedCat({ name: intent.categoryName, prestataire: intent.prestataireName });
     } else {
       setLockedCat(null);
+      setForm(f => ({ ...f, prestataire_id: '' }));
     }
     setShowModal(true);
     onIntentConsumed && onIntentConsumed();
@@ -826,14 +827,16 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, on
   const closeModal = () => {
     setShowModal(false);
     setLockedCat(null);
+    setForm(f => ({ ...f, prestataire_id: '' }));
   };
 
   const submit = async () => {
     setLoading(true); setError('');
     try {
       await api.post('/api/demandes', form);
-      closeModal();
-      setForm({ title:'', description:'', category_id:'', date_souhaitee:'' });
+      setShowModal(false);
+      setLockedCat(null);
+      setForm({ title:'', description:'', category_id:'', prestataire_id:'', date_souhaitee:'' });
       onCreated();
     } catch (e) {
       setError(e.response?.data?.message || 'Erreur lors de la création.');
@@ -850,7 +853,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, on
     <>
       <div style={S.sectionHeader}>
         <span style={S.sectionTitle}>Mes demandes <span style={{ color:'#94a3b8', fontWeight:400 }}>({demandes.length})</span></span>
-        <button style={S.btn()} onClick={() => { setLockedCat(null); setShowModal(true); }}>+ Nouvelle demande</button>
+        <button style={S.btn()} onClick={() => { setLockedCat(null); setForm(f => ({ ...f, prestataire_id: '' })); setShowModal(true); }}>+ Nouvelle demande</button>
       </div>
       <div style={S.card}>
         <table style={S.table}>
@@ -1159,6 +1162,7 @@ function PresOverview({ offres, avis, profile }) {
 }
 
 function BrowseDemandes({ categories }) {
+  const [me] = useState(() => user() || {});
   const [demandes, setDemandes] = useState([]);
   const [catFilter, setCatFilter] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1177,7 +1181,10 @@ function BrowseDemandes({ categories }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = catFilter ? demandes.filter(d => d.category_id === Number(catFilter)) : demandes;
+  const isForMe = (d) => d.prestataire_id === me.id;
+  const filtered = (catFilter ? demandes.filter(d => d.category_id === Number(catFilter)) : demandes)
+    // demandes addressed to me come first
+    .slice().sort((a, b) => (isForMe(b) ? 1 : 0) - (isForMe(a) ? 1 : 0));
 
   const submitOffre = async () => {
     setError('');
@@ -1203,7 +1210,17 @@ function BrowseDemandes({ categories }) {
       {loading && <p style={{ color:'#64748b' }}>Chargement...</p>}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:16 }}>
         {filtered.map(d => (
-          <div key={d.id} style={{ ...S.card, display:'flex', flexDirection:'column', gap: 8 }}>
+          <div key={d.id} style={{
+            ...S.card, display:'flex', flexDirection:'column', gap: 8,
+            ...(isForMe(d) ? { border:'1.5px solid #86efac', boxShadow:'0 2px 10px rgba(34,197,94,0.12)' } : {}),
+          }}>
+            {isForMe(d) && (
+              <span style={{ alignSelf:'flex-start', background:'linear-gradient(135deg,#22c55e,#16a34a)',
+                color:'#fff', fontSize: 10, fontWeight: 700, letterSpacing:'0.05em',
+                padding:'3px 9px', borderRadius: 6, textTransform:'uppercase' }}>
+                📌 Pour vous
+              </span>
+            )}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap: 8 }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>{d.title}</span>
               <Badge statut={d.statut} />
@@ -1676,10 +1693,11 @@ function NotificationsPanel({ onClose }) {
   }, []);
 
   const TYPE_ICON = {
-    new_offre:    '📩',
-    offre_acceptee: '✅',
-    offre_refusee:  '❌',
-    new_demande:  '📋',
+    new_offre:       '📩',
+    offre_acceptee:  '✅',
+    offre_refusee:   '❌',
+    new_demande:     '📋',
+    demande_directe: '📌',
   };
 
   return (
@@ -1815,6 +1833,7 @@ export default function Dashboard() {
             categoryId: presta?.category_id || null,
             categoryName: presta?.category?.nom || null,
             prestataireName: presta?.name || null,
+            prestataireId: presta?.user_id || null,
           });
           setSection('demandes');
         }} />;

@@ -5,7 +5,12 @@ import api from '../api';
 /* ─── helpers ─────────────────────────────────────────────────── */
 const user = () => JSON.parse(localStorage.getItem('user') || 'null');
 const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'DZD', maximumFractionDigits: 0 }).format(n);
+const fmtBudget = (b) => (b ? fmt(b) : 'À négocier');
 const fmtDate = (d) => new Date(d).toLocaleDateString('fr-FR');
+const isNewMember = (createdAt) => {
+  if (!createdAt) return false;
+  return (Date.now() - new Date(createdAt).getTime()) / 86400000 <= 7;
+};
 
 const STATUT_LABEL = {
   ouverte:    { text: 'Ouverte',    color: '#22c55e' },
@@ -309,12 +314,14 @@ function ClientFeed({ categories, onNewDemande }) {
   const [search, setSearch]             = useState('');
   const [selected, setSelected]         = useState(null);
   const [avis, setAvis]                 = useState({});
+  const [stats, setStats]               = useState({});
 
   const load = useCallback(async (cat = '') => {
     setLoading(true);
     try {
       const params = cat ? `?category_id=${cat}` : '';
       const res = await api.get(`/api/prestataires${params}`);
+      // backend already ranks by rating then accepted missions
       setPrestataires(res.data?.data || res.data || []);
     } catch { setPrestataires([]); }
     finally { setLoading(false); }
@@ -325,10 +332,14 @@ function ClientFeed({ categories, onNewDemande }) {
   const openProfile = async (p) => {
     setSelected(p);
     if (!avis[p.user_id]) {
-      try {
-        const r = await api.get(`/api/prestataires/${p.user_id}/avis`);
-        setAvis(prev => ({ ...prev, [p.user_id]: r.data?.data || r.data || [] }));
-      } catch { setAvis(prev => ({ ...prev, [p.user_id]: [] })); }
+      api.get(`/api/prestataires/${p.user_id}/avis`)
+        .then(r => setAvis(prev => ({ ...prev, [p.user_id]: r.data?.data || r.data || [] })))
+        .catch(() => setAvis(prev => ({ ...prev, [p.user_id]: [] })));
+    }
+    if (!stats[p.user_id]) {
+      api.get(`/api/prestataires/${p.user_id}/stats`)
+        .then(r => setStats(prev => ({ ...prev, [p.user_id]: r.data || {} })))
+        .catch(() => setStats(prev => ({ ...prev, [p.user_id]: {} })));
     }
   };
 
@@ -337,10 +348,10 @@ function ClientFeed({ categories, onNewDemande }) {
     p.category?.nom?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const avgRating = (userId) => {
-    const list = avis[userId] || [];
-    if (!list.length) return null;
-    return (list.reduce((s, a) => s + a.note, 0) / list.length).toFixed(1);
+  // rating comes straight from the backend (rating_avg), kept in sync on each new avis
+  const ratingOf = (p) => {
+    const r = Number(p?.rating_avg);
+    return r > 0 ? r.toFixed(1) : null;
   };
 
   const COLORS = ['#2563eb','#0d9488','#7c3aed','#db2777','#ea580c','#16a34a'];
@@ -425,37 +436,51 @@ function ClientFeed({ categories, onNewDemande }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap: 14 }}>
         {displayed.map(p => {
-          const rating = avgRating(p.user_id);
+          const rating = ratingOf(p);
           const color  = getColor(p.name);
           const initials = p.name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || '?';
+          const fresh  = isNewMember(p.user_created_at);
+          const missions = Number(p.accepted_count) || 0;
           return (
             <div
               key={p.id}
               onClick={() => openProfile(p)}
               style={{
                 ...S.card, cursor:'pointer', transition:'transform 0.15s, box-shadow 0.15s',
-                display:'flex', flexDirection:'column', gap: 0,
+                display:'flex', flexDirection:'column', gap: 0, position:'relative',
               }}
               onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(15,23,42,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow=''; }}
             >
+              {/* New badge */}
+              {fresh && (
+                <span style={{
+                  position:'absolute', top: 12, right: 12, zIndex: 2,
+                  background:'linear-gradient(135deg,#22c55e,#16a34a)', color:'#fff',
+                  fontSize: 10, fontWeight: 700, letterSpacing:'0.04em',
+                  padding:'3px 8px', borderRadius: 6, textTransform:'uppercase',
+                  boxShadow:'0 2px 6px rgba(34,197,94,0.4)',
+                }}>★ Nouveau</span>
+              )}
+
               {/* Card top */}
               <div style={{ display:'flex', alignItems:'flex-start', gap: 12, marginBottom: 12 }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: 12, background: color,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize: 17, fontWeight: 700, color: '#fff', flexShrink: 0,
-                }}>{initials}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                {p.avatar ? (
+                  <img src={p.avatar} alt={p.name} style={{
+                    width: 46, height: 46, borderRadius: 12, objectFit:'cover', flexShrink: 0,
+                  }} />
+                ) : (
+                  <div style={{
+                    width: 46, height: 46, borderRadius: 12, background: color,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize: 17, fontWeight: 700, color: '#fff', flexShrink: 0,
+                  }}>{initials}</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0, paddingRight: fresh ? 64 : 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a',
                     whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
                   <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{p.category?.nom || '—'}</div>
                 </div>
-                <div style={{
-                  width: 9, height: 9, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-                  background: p.availability ? '#10b981' : '#e2e8f0',
-                  boxShadow: p.availability ? '0 0 0 3px #d1fae5' : 'none',
-                }} title={p.availability ? 'Disponible' : 'Indisponible'} />
               </div>
 
               {/* Bio */}
@@ -467,17 +492,20 @@ function ClientFeed({ categories, onNewDemande }) {
               {/* Footer */}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
                 paddingTop: 10, borderTop:'1px solid #f1f5f9', marginTop:'auto' }}>
-                <span style={{ fontSize: 12, fontWeight: 500,
+                <span style={{ fontSize: 11.5, fontWeight: 500,
                   color: p.availability ? '#10b981' : '#94a3b8' }}>
                   {p.availability ? '● Disponible' : '○ Indisponible'}
                 </span>
-                {rating ? (
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f59e0b' }}>
-                    ★ {rating}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 12, color: '#cbd5e1' }}>Pas encore noté</span>
-                )}
+                <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+                  {missions > 0 && (
+                    <span style={{ fontSize: 11.5, color:'#64748b' }}>{missions} mission{missions>1?'s':''}</span>
+                  )}
+                  {rating ? (
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#f59e0b' }}>★ {rating}</span>
+                  ) : (
+                    <span style={{ fontSize: 11.5, color: '#cbd5e1' }}>Nouveau</span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -485,63 +513,110 @@ function ClientFeed({ categories, onNewDemande }) {
       </div>
 
       {/* Profile modal */}
-      {selected && (
+      {selected && (() => {
+        const st = stats[selected.user_id] || {};
+        const reviews = avis[selected.user_id] || [];
+        const rating = ratingOf(selected) || (st.note ? Number(st.note).toFixed(1) : null);
+        const fresh = isNewMember(selected.user_created_at);
+        return (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setSelected(null)}>
-          <div style={{ ...S.modalBox, maxWidth: 520 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 20 }}>
+          <div style={{ ...S.modalBox, maxWidth: 540 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 18 }}>
               <div style={{ display:'flex', gap: 14, alignItems:'center' }}>
-                <div style={{
-                  width: 54, height: 54, borderRadius: 14, background: getColor(selected.name),
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize: 20, fontWeight: 700, color:'#fff',
-                }}>
-                  {selected.name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-                </div>
+                {selected.avatar ? (
+                  <img src={selected.avatar} alt={selected.name} style={{
+                    width: 60, height: 60, borderRadius: 16, objectFit:'cover' }} />
+                ) : (
+                  <div style={{
+                    width: 60, height: 60, borderRadius: 16, background: getColor(selected.name),
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize: 22, fontWeight: 700, color:'#fff',
+                  }}>
+                    {selected.name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+                  </div>
+                )}
                 <div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color:'#0f172a' }}>{selected.name}</div>
-                  <div style={{ fontSize: 13, color:'#64748b', marginTop: 2 }}>{selected.category?.nom}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color:'#0f172a' }}>{selected.name}</span>
+                    {fresh && (
+                      <span style={{ background:'#dcfce7', color:'#16a34a', fontSize:10, fontWeight:700,
+                        padding:'2px 7px', borderRadius:6, textTransform:'uppercase' }}>Nouveau</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color:'#64748b', marginTop: 3 }}>{selected.category?.nom}</div>
+                  {st.member_since && (
+                    <div style={{ fontSize: 11.5, color:'#94a3b8', marginTop: 2 }}>
+                      Membre depuis {fmtDate(st.member_since)}
+                    </div>
+                  )}
                 </div>
               </div>
               <button onClick={() => setSelected(null)} style={{ background:'none', border:'none',
                 fontSize:20, color:'#94a3b8', cursor:'pointer' }}>×</button>
             </div>
 
-            <div style={{ display:'flex', gap: 8, marginBottom: 16, flexWrap:'wrap' }}>
-              <span style={{ ...S.btn('ghost'), padding:'4px 12px', fontSize:12, borderRadius:20,
+            {/* Overall rating + availability */}
+            <div style={{ display:'flex', gap: 8, marginBottom: 18, flexWrap:'wrap' }}>
+              <span style={{ padding:'4px 12px', fontSize:12, borderRadius:20, fontWeight:600,
                 background: selected.availability ? '#d1fae5' : '#f1f5f9',
                 color: selected.availability ? '#059669' : '#94a3b8' }}>
                 {selected.availability ? '● Disponible' : '○ Indisponible'}
               </span>
-              {avgRating(selected.user_id) && (
-                <span style={{ padding:'4px 12px', fontSize:12, borderRadius:20,
-                  background:'#fef9c3', color:'#a16207', fontWeight:600 }}>
-                  ★ {avgRating(selected.user_id)} / 5
+              {rating && (
+                <span style={{ padding:'4px 12px', fontSize:12, borderRadius:20, fontWeight:600,
+                  background:'#fef9c3', color:'#a16207' }}>
+                  ★ {rating} / 5 {st.avis_count ? `(${st.avis_count} avis)` : ''}
                 </span>
               )}
             </div>
 
-            {selected.bio && (
-              <p style={{ fontSize: 13.5, color:'#475569', lineHeight: 1.6, marginBottom: 18 }}>{selected.bio}</p>
-            )}
+            {/* Stats tiles */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap: 10, marginBottom: 18 }}>
+              {[
+                { label:'Missions',     val: st.missions_terminees ?? 0,        color:'#2563eb' },
+                { label:'Offres',       val: st.offres_total ?? 0,             color:'#0d9488' },
+                { label:'Réussite',     val: (st.taux_acceptation ?? 0) + '%', color:'#10b981' },
+                { label:'Note',         val: st.note ? st.note + '★' : '—',    color:'#f59e0b' },
+              ].map(t => (
+                <div key={t.label} style={{ background:'#f8fafc', borderRadius: 10, padding:'12px 8px', textAlign:'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: t.color, letterSpacing:'-0.5px' }}>{t.val}</div>
+                  <div style={{ fontSize: 10.5, color:'#94a3b8', marginTop: 2, fontWeight:500 }}>{t.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* About */}
+            <div style={{ fontSize: 12, fontWeight: 700, color:'#94a3b8', textTransform:'uppercase',
+              letterSpacing:'0.08em', marginBottom: 8 }}>À propos</div>
+            <p style={{ fontSize: 13.5, color:'#475569', lineHeight: 1.6, marginBottom: 18 }}>
+              {selected.bio || 'Aucune description pour le moment.'}
+            </p>
 
             {/* Avis */}
-            {(avis[selected.user_id] || []).length > 0 && (
-              <>
-                <div style={{ fontSize: 12, fontWeight: 700, color:'#94a3b8', textTransform:'uppercase',
-                  letterSpacing:'0.08em', marginBottom: 10 }}>
-                  Avis clients ({avis[selected.user_id].length})
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap: 10, marginBottom: 18 }}>
-                  {avis[selected.user_id].slice(0,3).map(a => (
-                    <div key={a.id} style={{ background:'#f8fafc', borderRadius: 8, padding:'10px 12px' }}>
-                      <StarRating value={a.note} />
-                      <p style={{ margin:'4px 0 0', fontSize:12.5, color:'#64748b' }}>
-                        {a.commentaire || <em>Sans commentaire</em>}
-                      </p>
+            <div style={{ fontSize: 12, fontWeight: 700, color:'#94a3b8', textTransform:'uppercase',
+              letterSpacing:'0.08em', marginBottom: 10 }}>
+              Avis clients {reviews.length > 0 ? `(${reviews.length})` : ''}
+            </div>
+            {reviews.length === 0 ? (
+              <p style={{ fontSize: 13, color:'#cbd5e1', marginBottom: 18 }}>Pas encore d'avis.</p>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap: 10, marginBottom: 18 }}>
+                {reviews.slice(0,4).map(a => (
+                  <div key={a.id} style={{ background:'#f8fafc', borderRadius: 8, padding:'10px 12px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <div style={{ display:'flex', gap:2 }}>
+                        {[1,2,3,4,5].map(n => (
+                          <span key={n} style={{ fontSize:13, color: n<=a.note ? '#f59e0b' : '#e2e8f0' }}>★</span>
+                        ))}
+                      </div>
+                      {a.client?.name && <span style={{ fontSize:11, color:'#94a3b8' }}>{a.client.name}</span>}
                     </div>
-                  ))}
-                </div>
-              </>
+                    <p style={{ margin:'5px 0 0', fontSize:12.5, color:'#64748b' }}>
+                      {a.commentaire || <em>Sans commentaire</em>}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
 
             <button style={{ ...S.btn(), width:'100%', padding:'11px', fontSize:14 }}
@@ -550,7 +625,8 @@ function ClientFeed({ categories, onNewDemande }) {
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
     </>
   );
 }
@@ -710,7 +786,7 @@ function ClientOverview({ demandes, offres }) {
                   background: STATUT_LABEL[d.statut]?.color || '#94a3b8' }} />
                 <div>
                   <div style={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{d.title}</div>
-                  <div style={{ fontSize:11, color:'#94a3b8' }}>{fmt(d.budget)} · {d.city}</div>
+                  <div style={{ fontSize:11, color:'#94a3b8' }}>{fmtBudget(d.budget)}{d.city ? ` · ${d.city}` : ''}</div>
                 </div>
               </div>
               <Badge statut={d.statut} />
@@ -726,7 +802,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ title:'', description:'', category_id:'', budget:'', city:'', date_souhaitee:'' });
+  const [form, setForm] = useState({ title:'', description:'', category_id:'', city:'', date_souhaitee:'' });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -735,7 +811,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
     try {
       await api.post('/api/demandes', form);
       setShowModal(false);
-      setForm({ title:'', description:'', category_id:'', budget:'', city:'', date_souhaitee:'' });
+      setForm({ title:'', description:'', category_id:'', city:'', date_souhaitee:'' });
       onCreated();
     } catch (e) {
       setError(e.response?.data?.message || 'Erreur lors de la création.');
@@ -758,7 +834,7 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
         <table style={S.table}>
           <thead>
             <tr>
-              {['Titre','Catégorie','Budget','Ville','Date souhaitée','Statut',''].map(h =>
+              {['Titre','Catégorie','Offres reçues','Ville','Date souhaitée','Statut',''].map(h =>
                 <th key={h} style={S.th}>{h}</th>)}
             </tr>
           </thead>
@@ -767,7 +843,11 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
               <tr key={d.id}>
                 <td style={S.td}><span style={{ fontWeight: 600 }}>{d.title}</span></td>
                 <td style={S.td}>{d.category?.nom || '—'}</td>
-                <td style={S.td}>{fmt(d.budget)}</td>
+                <td style={S.td}>
+                  {(d.offres?.length ?? 0) > 0
+                    ? <span style={{ fontWeight:600, color:'#2563eb' }}>{d.offres.length} devis</span>
+                    : <span style={{ color:'#94a3b8' }}>—</span>}
+                </td>
                 <td style={S.td}>{d.city}</td>
                 <td style={S.td}>{fmtDate(d.date_souhaitee)}</td>
                 <td style={S.td}><Badge statut={d.statut} /></td>
@@ -803,8 +883,14 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
               <option value="">-- Choisir --</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
             </select>
-            <label style={S.label}>Budget (DA) *</label>
-            <input style={S.input} type="number" value={form.budget} onChange={e => set('budget', e.target.value)} placeholder="Ex: 5000" />
+            <div style={{ display:'flex', gap: 10, alignItems:'flex-start', background:'#eff6ff',
+              border:'1px solid #bfdbfe', borderRadius: 8, padding:'10px 12px', marginBottom: 12 }}>
+              <span style={{ fontSize: 16, lineHeight: 1 }}>💡</span>
+              <span style={{ fontSize: 12.5, color:'#1e40af', lineHeight: 1.45 }}>
+                Pas besoin de fixer un budget. Les prestataires vous enverront leurs <strong>devis</strong>,
+                et vous choisirez la meilleure offre.
+              </span>
+            </div>
             <label style={S.label}>Ville</label>
             <input style={S.input} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Ex: Alger" />
             <label style={S.label}>Date souhaitée *</label>
@@ -1093,7 +1179,10 @@ function BrowseDemandes({ categories }) {
             <p style={{ fontSize: 13, color:'#475569', lineHeight: 1.5, margin: 0,
               display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{d.description}</p>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontWeight: 700, color:'#2e5ee2' }}>{fmt(d.budget)}</span>
+              <span style={{ fontWeight: 700, color: d.budget ? '#2e5ee2' : '#94a3b8',
+                fontSize: d.budget ? 14 : 12 }}>
+                {d.budget ? fmt(d.budget) : 'Devis libre'}
+              </span>
               <span style={{ fontSize: 12, color:'#94a3b8' }}>{fmtDate(d.date_souhaitee)}</span>
             </div>
             <button
@@ -1114,7 +1203,9 @@ function BrowseDemandes({ categories }) {
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 16 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color:'#0f172a', margin:'0 0 4px' }}>Soumettre une offre</h3>
-                <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>{selected.title} · Budget : {fmt(selected.budget)}</p>
+                <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>
+                  {selected.title}{selected.budget ? ` · Budget indicatif : ${fmt(selected.budget)}` : ' · Proposez votre devis'}
+                </p>
               </div>
               <button onClick={() => setSelected(null)} style={{ background:'none', border:'none', fontSize:20,
                 color:'#94a3b8', cursor:'pointer', lineHeight:1, marginLeft:12 }}>×</button>

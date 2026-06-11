@@ -438,25 +438,42 @@ function BrowseDemandes({ categories }) {
   );
 }
 
-function MesOffres({ offres }) {
+function MesOffres({ offres, onDeleted }) {
+  const del = async (id) => {
+    if (!window.confirm('Retirer cette offre ?')) return;
+    try {
+      await api.delete(`/api/offres/${id}`);
+      onDeleted && onDeleted(id);
+    } catch (e) {
+      alert(e.response?.data?.message || 'Impossible de retirer l\'offre.');
+    }
+  };
+
   return (
     <>
       <h2 style={{ ...S.title, marginBottom: 20 }}>Mes offres soumises</h2>
       <div style={S.card}>
         <table style={S.table}>
           <thead>
-            <tr>{['Demande','Devis','Message','Statut'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+            <tr>{['Demande','Devis','Message','Statut','Actions'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {offres.map(o => (
               <tr key={o.id}>
                 <td style={S.td}><span style={{ fontWeight:600 }}>{o.demande?.title || `Demande #${o.demande_id}`}</span></td>
                 <td style={S.td}>{fmt(o.devis)}</td>
-                <td style={{ ...S.td, maxWidth:260, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{o.message}</td>
+                <td style={{ ...S.td, maxWidth:220, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{o.message}</td>
                 <td style={S.td}><Badge statut={o.statut} /></td>
+                <td style={S.td}>
+                  {o.statut === 'en_attente' && (
+                    <button style={{ ...S.btn('danger'), padding:'5px 12px', fontSize:12 }} onClick={() => del(o.id)}>
+                      Retirer
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
-            {offres.length === 0 && <tr><td colSpan={4} style={{ ...S.td, textAlign:'center', color:'#94a3b8' }}>Aucune offre soumise.</td></tr>}
+            {offres.length === 0 && <tr><td colSpan={5} style={{ ...S.td, textAlign:'center', color:'#94a3b8' }}>Aucune offre soumise.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -535,6 +552,121 @@ function MesEvaluations({ avis }) {
   );
 }
 
+function MonCompte() {
+  const [profileForm, setProfileForm] = useState(() => {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    return { name: u.name || '', phone: u.phone || '' };
+  });
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [pwMsg, setPwMsg] = useState(null);
+
+  const saveProfile = async () => {
+    setProfileMsg(null);
+    try {
+      const res = await api.put('/api/user/profile', profileForm);
+      const updated = { ...JSON.parse(localStorage.getItem('user') || '{}'), ...res.data };
+      localStorage.setItem('user', JSON.stringify(updated));
+      setProfileMsg({ type: 'success', text: 'Profil mis à jour.' });
+    } catch (e) {
+      setProfileMsg({ type: 'error', text: e.response?.data?.message || 'Erreur.' });
+    }
+  };
+
+  const savePassword = async () => {
+    setPwMsg(null);
+    try {
+      await api.put('/api/user/password', pwForm);
+      setPwForm({ current_password: '', new_password: '', new_password_confirmation: '' });
+      setPwMsg({ type: 'success', text: 'Mot de passe mis à jour.' });
+    } catch (e) {
+      const errors = e.response?.data?.errors;
+      const msg = errors ? Object.values(errors).flat().join(' ') : (e.response?.data?.message || 'Erreur.');
+      setPwMsg({ type: 'error', text: msg });
+    }
+  };
+
+  return (
+    <>
+      <h2 style={{ ...S.title, marginBottom: 24 }}>Mon compte</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, maxWidth:800 }}>
+        <div style={S.card}>
+          <h3 style={{ marginBottom:16, fontSize:15, color:'#0d1e3a' }}>Informations personnelles</h3>
+          {profileMsg && <div style={S.alert(profileMsg.type)}>{profileMsg.text}</div>}
+          <label style={S.label}>Nom complet</label>
+          <input style={S.input} value={profileForm.name}
+            onChange={e => setProfileForm(f => ({...f, name:e.target.value}))} placeholder="Votre nom" />
+          <label style={S.label}>Téléphone</label>
+          <input style={S.input} value={profileForm.phone}
+            onChange={e => setProfileForm(f => ({...f, phone:e.target.value}))} placeholder="+213..." />
+          <button style={S.btn()} onClick={saveProfile}>Enregistrer</button>
+        </div>
+
+        <div style={S.card}>
+          <h3 style={{ marginBottom:16, fontSize:15, color:'#0d1e3a' }}>Changer le mot de passe</h3>
+          {pwMsg && <div style={S.alert(pwMsg.type)}>{pwMsg.text}</div>}
+          <label style={S.label}>Mot de passe actuel</label>
+          <input style={S.input} type="password" value={pwForm.current_password}
+            onChange={e => setPwForm(f => ({...f, current_password:e.target.value}))} placeholder="••••••••" />
+          <label style={S.label}>Nouveau mot de passe</label>
+          <input style={S.input} type="password" value={pwForm.new_password}
+            onChange={e => setPwForm(f => ({...f, new_password:e.target.value}))} placeholder="Min. 8 caractères" />
+          <label style={S.label}>Confirmer le nouveau mot de passe</label>
+          <input style={S.input} type="password" value={pwForm.new_password_confirmation}
+            onChange={e => setPwForm(f => ({...f, new_password_confirmation:e.target.value}))} placeholder="••••••••" />
+          <button style={S.btn()} onClick={savePassword}>Mettre à jour</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   NOTIFICATIONS PANEL
+═════════════════════════════════════════════════════════════════*/
+
+function NotificationsPanel({ onClose }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/api/notifications')
+      .then(r => setItems(r.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const TYPE_ICON = {
+    new_offre:    '📩',
+    offre_acceptee: '✅',
+    offre_refusee:  '❌',
+    new_demande:  '📋',
+  };
+
+  return (
+    <div style={{ position:'absolute', top:56, right:0, width:360, background:'#fff', borderRadius:14,
+      boxShadow:'0 8px 30px rgba(0,0,0,0.15)', zIndex:200, overflow:'hidden' }}>
+      <div style={{ padding:'16px 20px', borderBottom:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span style={{ fontWeight:700, fontSize:14, color:'#0d1e3a' }}>Notifications</span>
+        <button style={{ background:'none', border:'none', cursor:'pointer', fontSize:18, color:'#94a3b8' }} onClick={onClose}>×</button>
+      </div>
+      <div style={{ maxHeight:380, overflowY:'auto' }}>
+        {loading && <p style={{ padding:20, color:'#94a3b8', fontSize:13 }}>Chargement...</p>}
+        {!loading && items.length === 0 && <p style={{ padding:20, color:'#94a3b8', fontSize:13 }}>Aucune notification.</p>}
+        {items.map((n, i) => (
+          <div key={i} style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc', display:'flex', gap:12, alignItems:'flex-start' }}>
+            <span style={{ fontSize:20, flexShrink:0 }}>{TYPE_ICON[n.type] || '🔔'}</span>
+            <div>
+              <p style={{ margin:0, fontSize:13, color:'#1e293b', lineHeight:1.4 }}>{n.message}</p>
+              <span style={{ fontSize:11, color:'#94a3b8' }}>{new Date(n.date).toLocaleString('fr-FR')}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════
    MAIN DASHBOARD
 ═════════════════════════════════════════════════════════════════*/
@@ -544,6 +676,7 @@ const CLIENT_MENU = [
   { key:'demandes',  icon:'📋', label:'Mes demandes' },
   { key:'offres',    icon:'📩', label:'Offres reçues' },
   { key:'avis',      icon:'⭐', label:'Laisser un avis' },
+  { key:'compte',    icon:'⚙️', label:'Mon compte' },
 ];
 
 const PRES_MENU = [
@@ -552,12 +685,14 @@ const PRES_MENU = [
   { key:'mesoffres', icon:'📤', label:'Mes offres' },
   { key:'profil',    icon:'👤', label:'Mon profil' },
   { key:'evals',     icon:'⭐', label:'Mes évaluations' },
+  { key:'compte',    icon:'⚙️', label:'Mon compte' },
 ];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => user()); // stable reference — read once on mount
   const [section, setSection] = useState('overview');
+  const [showNotif, setShowNotif] = useState(false);
 
   // shared data
   const [demandes, setDemandes] = useState([]);
@@ -626,6 +761,7 @@ export default function Dashboard() {
   const menu = isClient ? CLIENT_MENU : PRES_MENU;
 
   const renderSection = () => {
+    if (section === 'compte') return <MonCompte />;
     if (isClient) {
       if (section === 'overview') return <ClientOverview demandes={demandes} offres={offres} />;
       if (section === 'demandes') return <ClientDemandes demandes={demandes} categories={categories}
@@ -635,7 +771,7 @@ export default function Dashboard() {
     } else {
       if (section === 'overview')  return <PresOverview offres={offres} avis={avis} profile={profile} />;
       if (section === 'browse')    return <BrowseDemandes categories={categories} />;
-      if (section === 'mesoffres') return <MesOffres offres={offres} />;
+      if (section === 'mesoffres') return <MesOffres offres={offres} onDeleted={id => { setOffres(o => o.filter(x => x.id !== id)); }} />;
       if (section === 'profil')    return <MonProfil profile={profile} categories={categories} onSaved={loadData} />;
       if (section === 'evals')     return <MesEvaluations avis={avis} />;
     }
@@ -668,9 +804,19 @@ export default function Dashboard() {
       {/* Main */}
       <main style={S.main}>
         <div style={S.header}>
-          <div style={S.title}>{menu.find(m => m.key === section)?.label}</div>
-          <div style={{ fontSize: 13, color:'#64748b' }}>
-            Bonjour, <strong>{currentUser.name}</strong>
+          <div style={S.title}>{menu.find(m => m.key === section)?.label || 'Mon compte'}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:16, position:'relative' }}>
+            <div style={{ position:'relative' }}>
+              <button onClick={() => setShowNotif(v => !v)}
+                style={{ background:'#f1f5f9', border:'none', borderRadius:10, width:40, height:40,
+                  cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                🔔
+              </button>
+              {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} />}
+            </div>
+            <div style={{ fontSize: 13, color:'#64748b' }}>
+              Bonjour, <strong>{currentUser.name}</strong>
+            </div>
           </div>
         </div>
         {renderSection()}

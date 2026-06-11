@@ -1275,11 +1275,14 @@ function MesOffres({ offres, onDeleted }) {
 }
 
 function MonProfil({ profile, categories, onSaved }) {
+  const navigate = useNavigate();
   const [me] = useState(() => user() || {});
   const [form, setForm] = useState({ category_id: profile?.category_id || '', bio: profile?.bio || '', availability: profile?.availability ?? true });
   const [stats, setStats] = useState(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const set = (k,v) => setForm(f => ({...f,[k]:v}));
 
   // profile loads async — sync the form when it arrives
@@ -1308,6 +1311,18 @@ function MonProfil({ profile, categories, onSaved }) {
     } catch (e) { setError(e.response?.data?.message || 'Erreur.'); }
   };
 
+  const deleteAccount = async () => {
+    setMenuOpen(false);
+    if (!window.confirm('Supprimer définitivement votre compte ?\nToutes vos données (offres, avis, profil) seront effacées. Cette action est irréversible.')) return;
+    try {
+      await api.delete('/api/user');
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    } catch (e) {
+      alert(e.response?.data?.message || 'Erreur lors de la suppression du compte.');
+    }
+  };
+
   const initials = me.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
   const categoryName = categories.find(c => c.id === Number(form.category_id))?.nom || profile?.category?.nom;
   const memberSince = stats?.member_since || me.created_at;
@@ -1322,8 +1337,50 @@ function MonProfil({ profile, categories, onSaved }) {
     </div>
   );
 
+  const menuItemStyle = {
+    display:'flex', alignItems:'center', gap: 9,
+    padding:'11px 16px', fontSize: 13, fontWeight: 500,
+    color:'#1e293b', cursor:'pointer', transition:'background 0.12s',
+  };
+
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'330px 1fr', gap: 14, alignItems:'start' }}>
+    <>
+      {/* ── Actions (⋮) ── */}
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom: 12, position:'relative' }}>
+        <button
+          onClick={() => setMenuOpen(v => !v)}
+          title="Options du profil"
+          style={{
+            width: 36, height: 36, borderRadius: 8, cursor:'pointer',
+            background: menuOpen ? '#eff6ff' : '#fff',
+            border: `1px solid ${menuOpen ? '#bfdbfe' : '#e2e8f0'}`,
+            fontSize: 18, fontWeight: 700, color:'#475569', lineHeight: 1,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}>⋮</button>
+
+        {menuOpen && (
+          <div style={{
+            position:'absolute', top: 42, right: 0, zIndex: 100,
+            background:'#fff', borderRadius: 10, minWidth: 220, overflow:'hidden',
+            border:'1px solid #eef0f6', boxShadow:'0 10px 34px rgba(15,23,42,0.16)',
+          }}>
+            <div style={menuItemStyle}
+              onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
+              onMouseLeave={e => e.currentTarget.style.background=''}
+              onClick={() => { setEditing(true); setMenuOpen(false); }}>
+              ✎ Modifier le profil
+            </div>
+            <div style={{ ...menuItemStyle, color:'#dc2626', borderTop:'1px solid #f8fafc' }}
+              onMouseEnter={e => e.currentTarget.style.background='#fef2f2'}
+              onMouseLeave={e => e.currentTarget.style.background=''}
+              onClick={deleteAccount}>
+              🗑 Supprimer le compte
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'330px 1fr', gap: 14, alignItems:'start' }}>
 
       {/* ── Identity card ── */}
       <div style={{ ...S.card, padding: 0, overflow:'hidden' }}>
@@ -1396,13 +1453,15 @@ function MonProfil({ profile, categories, onSaved }) {
             <span style={S.sectionTitle}>À propos</span>
           </div>
           <p style={{ fontSize: 13.5, color: form.bio ? '#475569' : '#cbd5e1', lineHeight: 1.65, margin: 0 }}>
-            {form.bio || 'Aucune description pour le moment — présentez-vous ci-dessous pour inspirer confiance aux clients.'}
+            {form.bio || 'Aucune description pour le moment — utilisez le menu ⋮ en haut à droite pour vous présenter aux clients.'}
           </p>
         </div>
 
+        {editing && (
         <div style={S.card}>
           <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
             <span style={S.sectionTitle}>Modifier mon profil</span>
+            <button style={S.btn('ghost')} onClick={() => { setEditing(false); setSaved(false); setError(''); }}>Fermer</button>
           </div>
           {error  && <div style={S.alert('error')}>{error}</div>}
           {saved  && <div style={S.alert('success')}>Profil mis à jour avec succès.</div>}
@@ -1437,8 +1496,37 @@ function MonProfil({ profile, categories, onSaved }) {
 
           <button style={{ ...S.btn(), padding:'10px 22px' }} onClick={save}>Enregistrer les modifications</button>
         </div>
+        )}
       </div>
-    </div>
+      </div>
+
+      {/* ── Note globale ── */}
+      <div style={{ ...S.card, marginTop: 14 }}>
+        <div style={{ ...S.sectionHeader, marginBottom: 12 }}>
+          <span style={S.sectionTitle}>Note globale</span>
+          {stats?.avis_count > 0 && (
+            <span style={{ fontSize: 12, color:'#94a3b8' }}>{stats.avis_count} avis client{stats.avis_count > 1 ? 's' : ''}</span>
+          )}
+        </div>
+        {stats?.note ? (
+          <div style={{ display:'flex', alignItems:'center', gap: 18 }}>
+            <span style={{ fontSize: 44, fontWeight: 800, color:'#f59e0b', letterSpacing:'-1px', lineHeight: 1 }}>
+              {Number(stats.note).toFixed(1)}
+            </span>
+            <div>
+              <StarRating value={Math.round(stats.note)} />
+              <span style={{ fontSize: 12.5, color:'#64748b' }}>
+                Basée sur {stats.avis_count} évaluation{stats.avis_count > 1 ? 's' : ''} client
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, color:'#cbd5e1', margin: 0 }}>
+            Pas encore de note — elle apparaîtra ici après vos premières missions évaluées.
+          </p>
+        )}
+      </div>
+    </>
   );
 }
 

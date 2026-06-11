@@ -20,8 +20,13 @@ const STATUT_LABEL = {
 function Badge({ statut }) {
   const s = STATUT_LABEL[statut] || { text: statut, color: '#94a3b8' };
   return (
-    <span style={{ background: s.color + '22', color: s.color, border: `1px solid ${s.color}44`,
-      borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>
+    <span style={{
+      background: s.color + '18', color: s.color,
+      border: `1px solid ${s.color}30`,
+      borderRadius: 6, padding: '3px 9px',
+      fontSize: 11.5, fontWeight: 600, letterSpacing: '0.02em',
+      whiteSpace: 'nowrap',
+    }}>
       {s.text}
     </span>
   );
@@ -29,39 +34,143 @@ function Badge({ statut }) {
 
 /* ─── styles ──────────────────────────────────────────────────── */
 const S = {
-  layout: { display: 'flex', minHeight: '100vh', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", background: '#f1f5f9' },
-  sidebar: { width: 240, background: 'linear-gradient(180deg,#0d1e3a 0%,#08372a 100%)', color: '#fff', display: 'flex', flexDirection: 'column', padding: '24px 0', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 },
-  logo: { fontSize: 20, fontWeight: 800, padding: '0 24px 28px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: 16 },
-  navItem: (active) => ({ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 24px', cursor: 'pointer', borderRadius: 0,
-    background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-    borderLeft: active ? '3px solid #3b86f7' : '3px solid transparent',
-    color: active ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: active ? 600 : 400, transition: '0.2s' }),
-  main: { flex: 1, padding: '32px 36px', overflowY: 'auto' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  title: { fontSize: 22, fontWeight: 700, color: '#0d1e3a' },
-  card: { background: '#fff', borderRadius: 14, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
-  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 16, marginBottom: 28 },
-  statCard: (color) => ({ background: '#fff', borderRadius: 14, padding: '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-    borderTop: `4px solid ${color}` }),
-  statVal: { fontSize: 28, fontWeight: 800, color: '#0d1e3a', lineHeight: 1 },
-  statLbl: { fontSize: 13, color: '#64748b', marginTop: 6 },
-  btn: (variant='primary') => ({
-    padding: '9px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
-    background: variant === 'primary' ? '#2e5ee2' : variant === 'danger' ? '#ef4444' : variant === 'success' ? '#22c55e' : '#f1f5f9',
-    color: variant === 'ghost' ? '#0d1e3a' : '#fff', transition: '0.15s',
+  layout: {
+    display: 'flex', minHeight: '100vh',
+    fontFamily: "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif",
+    background: '#f7f8fc',
+  },
+  sidebar: {
+    width: 256, background: '#0f172a', color: '#fff',
+    display: 'flex', flexDirection: 'column',
+    position: 'sticky', top: 0, height: '100vh', flexShrink: 0,
+    borderRight: '1px solid rgba(255,255,255,0.04)',
+  },
+  logoWrap: {
+    padding: '28px 24px 22px',
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
+  },
+  logoText: {
+    fontSize: 19, fontWeight: 800, letterSpacing: '-0.4px',
+    color: '#fff',
+  },
+  logoAccent: { color: '#4f8ef7' },
+  logoSub: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3, letterSpacing: '0.04em' },
+  userChip: {
+    margin: '14px 16px 6px',
+    background: 'rgba(255,255,255,0.06)',
+    borderRadius: 10, padding: '10px 14px',
+    display: 'flex', alignItems: 'center', gap: 10,
+  },
+  avatar: (color) => ({
+    width: 34, height: 34, borderRadius: 10,
+    background: color, display: 'flex', alignItems: 'center',
+    justifyContent: 'center', fontSize: 14, fontWeight: 700,
+    color: '#fff', flexShrink: 0,
   }),
-  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14,
-    outline: 'none', background: '#f8fafc', marginBottom: 10, boxSizing: 'border-box' },
-  label: { fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 14 },
-  th: { textAlign: 'left', padding: '10px 14px', fontSize: 12, fontWeight: 700, color: '#64748b',
-    borderBottom: '2px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  td: { padding: '13px 14px', borderBottom: '1px solid #f1f5f9', color: '#1e293b', verticalAlign: 'middle' },
-  modal: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' },
-  modalBox: { background: '#fff', borderRadius: 18, padding: 32, width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' },
-  alert: (type) => ({ padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 500,
-    background: type === 'error' ? '#fee2e2' : '#dcfce7', color: type === 'error' ? '#b91c1c' : '#15803d' }),
+  navSection: { padding: '18px 12px 6px 16px', fontSize: 10, fontWeight: 700,
+    color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase' },
+  navItem: (active) => ({
+    display: 'flex', alignItems: 'center', gap: 10,
+    padding: '9px 12px', margin: '1px 8px',
+    cursor: 'pointer', borderRadius: 8,
+    background: active ? 'rgba(79,142,247,0.15)' : 'transparent',
+    color: active ? '#4f8ef7' : 'rgba(255,255,255,0.6)',
+    fontSize: 13.5, fontWeight: active ? 600 : 400,
+    transition: 'all 0.15s',
+    letterSpacing: '-0.1px',
+  }),
+  navIcon: { fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 },
+  main: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' },
+  topbar: {
+    padding: '18px 32px',
+    background: '#fff',
+    borderBottom: '1px solid #eef0f6',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    position: 'sticky', top: 0, zIndex: 10,
+  },
+  pageTitle: { fontSize: 17, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.3px' },
+  content: { padding: '28px 32px', flex: 1 },
+  card: {
+    background: '#fff', borderRadius: 12, padding: '20px 22px',
+    border: '1px solid #eef0f6',
+    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+  },
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 24 },
+  statCard: (color) => ({
+    background: '#fff', borderRadius: 12, padding: '18px 20px',
+    border: '1px solid #eef0f6',
+    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+    position: 'relative', overflow: 'hidden',
+  }),
+  statAccent: (color) => ({
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    background: color, borderRadius: '12px 12px 0 0',
+  }),
+  statVal: { fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1, letterSpacing: '-0.5px' },
+  statLbl: { fontSize: 12, color: '#94a3b8', marginTop: 5, fontWeight: 500 },
+  statIcon: (color) => ({
+    width: 36, height: 36, borderRadius: 9, background: color + '15',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 16, marginBottom: 12,
+  }),
+  btn: (variant = 'primary') => ({
+    padding: variant === 'sm' ? '6px 13px' : '9px 17px',
+    borderRadius: 7, border: 'none', cursor: 'pointer',
+    fontWeight: 600, fontSize: variant === 'sm' ? 12 : 13,
+    letterSpacing: '-0.1px',
+    background: variant === 'primary' ? '#2563eb'
+      : variant === 'danger'  ? '#fee2e2'
+      : variant === 'success' ? '#dcfce7'
+      : variant === 'ghost'   ? '#f1f5f9'
+      : '#f1f5f9',
+    color: variant === 'primary' ? '#fff'
+      : variant === 'danger'  ? '#dc2626'
+      : variant === 'success' ? '#16a34a'
+      : '#374151',
+    transition: 'all 0.15s',
+  }),
+  input: {
+    width: '100%', padding: '9px 12px', borderRadius: 7,
+    border: '1.5px solid #e2e8f0', fontSize: 13.5,
+    outline: 'none', background: '#fff', marginBottom: 12,
+    boxSizing: 'border-box', color: '#0f172a',
+    transition: 'border-color 0.15s',
+  },
+  label: { fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 5, letterSpacing: '0.02em' },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
+  th: {
+    textAlign: 'left', padding: '11px 16px', fontSize: 11,
+    fontWeight: 700, color: '#94a3b8',
+    borderBottom: '1px solid #f1f5f9',
+    textTransform: 'uppercase', letterSpacing: '0.07em',
+    background: '#fafbfd',
+  },
+  td: { padding: '13px 16px', borderBottom: '1px solid #f8fafc', color: '#1e293b', verticalAlign: 'middle' },
+  modal: {
+    position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000, backdropFilter: 'blur(4px)',
+  },
+  modalBox: {
+    background: '#fff', borderRadius: 16, padding: '28px 30px',
+    width: '100%', maxWidth: 490, maxHeight: '90vh', overflowY: 'auto',
+    boxShadow: '0 20px 60px rgba(15,23,42,0.18)',
+  },
+  alert: (type) => ({
+    padding: '11px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13,
+    fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8,
+    background: type === 'error' ? '#fef2f2' : '#f0fdf4',
+    color: type === 'error' ? '#dc2626' : '#16a34a',
+    border: `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+  }),
+  sectionHeader: {
+    display: 'flex', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 18,
+  },
+  sectionTitle: { fontSize: 15, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.2px' },
+  emptyState: {
+    textAlign: 'center', padding: '48px 24px', color: '#94a3b8', fontSize: 13.5,
+  },
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -84,40 +193,56 @@ function StarRating({ value, onChange }) {
    CLIENT SECTIONS
 ═════════════════════════════════════════════════════════════════*/
 
+function StatCard({ label, val, color, icon }) {
+  return (
+    <div style={S.statCard(color)}>
+      <div style={S.statAccent(color)} />
+      <div style={S.statIcon(color)}>{icon}</div>
+      <div style={S.statVal}>{val}</div>
+      <div style={S.statLbl}>{label}</div>
+    </div>
+  );
+}
+
 function ClientOverview({ demandes, offres }) {
-  const total = demandes.length;
-  const actives = demandes.filter(d => d.statut === 'ouverte' || d.statut === 'en_cours').length;
+  const total    = demandes.length;
+  const actives  = demandes.filter(d => ['ouverte','en_cours'].includes(d.statut)).length;
   const terminees = demandes.filter(d => d.statut === 'terminee').length;
-  const pending = offres.filter(o => o.statut === 'en_attente').length;
+  const pending  = offres.filter(o => o.statut === 'en_attente').length;
 
   return (
     <>
       <div style={S.statGrid}>
-        {[
-          { label: 'Total demandes',    val: total,    color: '#2e5ee2' },
-          { label: 'Demandes actives',  val: actives,  color: '#f59e0b' },
-          { label: 'Missions terminées',val: terminees, color: '#22c55e' },
-          { label: 'Offres en attente', val: pending,  color: '#6366f1' },
-        ].map(s => (
-          <div key={s.label} style={S.statCard(s.color)}>
-            <div style={S.statVal}>{s.val}</div>
-            <div style={S.statLbl}>{s.label}</div>
-          </div>
-        ))}
+        <StatCard label="Total demandes"     val={total}     color="#2563eb" icon="📋" />
+        <StatCard label="En cours"           val={actives}   color="#f59e0b" icon="⚡" />
+        <StatCard label="Terminées"          val={terminees} color="#10b981" icon="✓" />
+        <StatCard label="Offres reçues"      val={pending}   color="#8b5cf6" icon="📩" />
       </div>
       <div style={S.card}>
-        <h3 style={{ marginBottom: 16, color: '#0d1e3a', fontSize: 16 }}>Dernières demandes</h3>
-        {demandes.slice(0,5).map(d => (
-          <div key={d.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{d.title}</div>
-              <div style={{ fontSize: 12, color: '#64748b' }}>{d.city} · {fmtDate(d.date_souhaitee)}</div>
+        <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
+          <span style={S.sectionTitle}>Activité récente</span>
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>{demandes.length} demande{demandes.length !== 1 ? 's' : ''}</span>
+        </div>
+        {demandes.length === 0 && <div style={S.emptyState}>Aucune demande pour l'instant.</div>}
+        {demandes.slice(0,6).map((d, i) => (
+          <div key={d.id} style={{
+            display:'flex', justifyContent:'space-between', alignItems:'center',
+            padding: '11px 0',
+            borderBottom: i < Math.min(demandes.length,6)-1 ? '1px solid #f8fafc' : 'none',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%',
+                background: STATUT_LABEL[d.statut]?.color || '#94a3b8', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f172a' }}>{d.title}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                  {d.city && `${d.city} · `}{fmtDate(d.date_souhaitee)}
+                </div>
+              </div>
             </div>
             <Badge statut={d.statut} />
           </div>
         ))}
-        {demandes.length === 0 && <p style={{ color: '#94a3b8', fontSize: 14 }}>Aucune demande pour l'instant.</p>}
       </div>
     </>
   );
@@ -151,15 +276,15 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
 
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 20 }}>
-        <h2 style={S.title}>Mes demandes</h2>
+      <div style={S.sectionHeader}>
+        <span style={S.sectionTitle}>Mes demandes <span style={{ color:'#94a3b8', fontWeight:400 }}>({demandes.length})</span></span>
         <button style={S.btn()} onClick={() => setShowModal(true)}>+ Nouvelle demande</button>
       </div>
       <div style={S.card}>
         <table style={S.table}>
           <thead>
             <tr>
-              {['Titre','Catégorie','Budget','Ville','Date souhaitée','Statut','Actions'].map(h =>
+              {['Titre','Catégorie','Budget','Ville','Date souhaitée','Statut',''].map(h =>
                 <th key={h} style={S.th}>{h}</th>)}
             </tr>
           </thead>
@@ -188,7 +313,11 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted }) {
       {showModal && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div style={S.modalBox}>
-            <h3 style={{ marginBottom: 20, color: '#0d1e3a' }}>Nouvelle demande</h3>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Nouvelle demande</h3>
+              <button onClick={() => setShowModal(false)} style={{ background:'none', border:'none', fontSize:20,
+                color:'#94a3b8', cursor:'pointer', lineHeight:1 }}>×</button>
+            </div>
             {error && <div style={S.alert('error')}>{error}</div>}
             <label style={S.label}>Titre *</label>
             <input style={S.input} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Ex: Fuite d'eau cuisine" />
@@ -222,7 +351,9 @@ function ClientOffres({ demandes, onAccept, onRefuse }) {
 
   return (
     <>
-      <h2 style={{ ...S.title, marginBottom: 20 }}>Offres reçues</h2>
+      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
+        <span style={S.sectionTitle}>Offres reçues</span>
+      </div>
       <div style={S.card}>
         <table style={S.table}>
           <thead>
@@ -273,7 +404,9 @@ function ClientAvis({ offres }) {
 
   return (
     <>
-      <h2 style={{ ...S.title, marginBottom: 20 }}>Laisser un avis</h2>
+      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
+        <span style={S.sectionTitle}>Laisser un avis</span>
+      </div>
       <div style={S.card}>
         {error && <div style={S.alert('error')}>{error}</div>}
         {eligible.length === 0
@@ -309,38 +442,43 @@ function PresOverview({ offres, avis, profile }) {
   return (
     <>
       <div style={S.statGrid}>
-        {[
-          { label: 'Offres soumises',  val: offres.length, color: '#2e5ee2' },
-          { label: 'En attente',       val: pending,        color: '#f59e0b' },
-          { label: 'Acceptées',        val: accepted,       color: '#22c55e' },
-          { label: 'Note moyenne',     val: avgNote + ' ★', color: '#f59e0b' },
-        ].map(s => (
-          <div key={s.label} style={S.statCard(s.color)}>
-            <div style={S.statVal}>{s.val}</div>
-            <div style={S.statLbl}>{s.label}</div>
-          </div>
-        ))}
+        <StatCard label="Offres soumises" val={offres.length} color="#2563eb" icon="📤" />
+        <StatCard label="En attente"      val={pending}       color="#f59e0b" icon="⏳" />
+        <StatCard label="Acceptées"       val={accepted}      color="#10b981" icon="✓" />
+        <StatCard label="Note moyenne"    val={avgNote === '—' ? '—' : avgNote + ' ★'} color="#f59e0b" icon="★" />
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
         <div style={S.card}>
-          <h3 style={{ marginBottom: 14, fontSize: 15, color: '#0d1e3a' }}>Disponibilité</h3>
-          <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%',
-              background: profile?.availability ? '#22c55e' : '#ef4444' }} />
-            <span style={{ fontWeight: 600, color: profile?.availability ? '#22c55e' : '#ef4444' }}>
+          <div style={S.sectionTitle}>Disponibilité</div>
+          <div style={{ display:'flex', alignItems:'center', gap: 10, marginTop: 14 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+              background: profile?.availability ? '#10b981' : '#ef4444',
+              boxShadow: `0 0 0 3px ${profile?.availability ? '#d1fae5' : '#fee2e2'}` }} />
+            <span style={{ fontWeight: 600, fontSize: 14,
+              color: profile?.availability ? '#10b981' : '#ef4444' }}>
               {profile?.availability ? 'Disponible' : 'Indisponible'}
             </span>
           </div>
+          {profile?.bio && (
+            <p style={{ fontSize: 13, color: '#64748b', marginTop: 12, lineHeight: 1.5 }}>
+              {profile.bio.slice(0, 120)}{profile.bio.length > 120 ? '...' : ''}
+            </p>
+          )}
         </div>
         <div style={S.card}>
-          <h3 style={{ marginBottom: 14, fontSize: 15, color: '#0d1e3a' }}>Derniers avis</h3>
-          {avis.slice(0,3).map(a => (
-            <div key={a.id} style={{ borderBottom:'1px solid #f1f5f9', paddingBottom: 8, marginBottom: 8 }}>
+          <div style={S.sectionTitle}>Derniers avis</div>
+          {avis.length === 0 && <div style={{ ...S.emptyState, padding: '20px 0' }}>Aucun avis encore.</div>}
+          {avis.slice(0,3).map((a, i) => (
+            <div key={a.id} style={{
+              paddingBottom: 10, marginTop: 12,
+              borderBottom: i < Math.min(avis.length,3)-1 ? '1px solid #f8fafc' : 'none',
+            }}>
               <StarRating value={a.note} />
-              <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>{a.commentaire}</p>
+              <p style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 0', lineHeight: 1.45 }}>
+                {a.commentaire || <em>Sans commentaire</em>}
+              </p>
             </div>
           ))}
-          {avis.length === 0 && <p style={{ color:'#94a3b8', fontSize: 14 }}>Aucun avis encore.</p>}
         </div>
       </div>
     </>
@@ -382,9 +520,9 @@ function BrowseDemandes({ categories }) {
 
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 20 }}>
-        <h2 style={S.title}>Parcourir les demandes</h2>
-        <select style={{ ...S.input, width: 200, marginBottom: 0 }} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+      <div style={S.sectionHeader}>
+        <span style={S.sectionTitle}>Parcourir les demandes <span style={{ color:'#94a3b8', fontWeight:400 }}>({filtered.length})</span></span>
+        <select style={{ ...S.input, width: 190, marginBottom: 0 }} value={catFilter} onChange={e => setCatFilter(e.target.value)}>
           <option value="">Toutes catégories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
         </select>
@@ -419,8 +557,14 @@ function BrowseDemandes({ categories }) {
       {selected && (
         <div style={S.modal} onClick={e => e.target === e.currentTarget && setSelected(null)}>
           <div style={S.modalBox}>
-            <h3 style={{ marginBottom: 4, color:'#0d1e3a' }}>Offre pour : {selected.title}</h3>
-            <p style={{ fontSize: 13, color:'#64748b', marginBottom: 16 }}>Budget client : {fmt(selected.budget)}</p>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color:'#0f172a', margin:'0 0 4px' }}>Soumettre une offre</h3>
+                <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>{selected.title} · Budget : {fmt(selected.budget)}</p>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background:'none', border:'none', fontSize:20,
+                color:'#94a3b8', cursor:'pointer', lineHeight:1, marginLeft:12 }}>×</button>
+            </div>
             {error && <div style={S.alert('error')}>{error}</div>}
             <label style={S.label}>Votre devis (DA) *</label>
             <input style={S.input} type="number" value={offreForm.devis} onChange={e => setOffreForm(f => ({...f, devis:e.target.value}))} placeholder="Ex: 4500" />
@@ -451,7 +595,9 @@ function MesOffres({ offres, onDeleted }) {
 
   return (
     <>
-      <h2 style={{ ...S.title, marginBottom: 20 }}>Mes offres soumises</h2>
+      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
+        <span style={S.sectionTitle}>Mes offres <span style={{ color:'#94a3b8', fontWeight:400 }}>({offres.length})</span></span>
+      </div>
       <div style={S.card}>
         <table style={S.table}>
           <thead>
@@ -497,7 +643,9 @@ function MonProfil({ profile, categories, onSaved }) {
 
   return (
     <>
-      <h2 style={{ ...S.title, marginBottom: 20 }}>Mon profil prestataire</h2>
+      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
+        <span style={S.sectionTitle}>Mon profil prestataire</span>
+      </div>
       <div style={{ ...S.card, maxWidth: 520 }}>
         {error  && <div style={S.alert('error')}>{error}</div>}
         {saved  && <div style={S.alert('success')}>Profil mis à jour avec succès.</div>}
@@ -528,7 +676,9 @@ function MesEvaluations({ avis }) {
   const avg = avis.length ? (avis.reduce((s,a) => s + a.note, 0) / avis.length).toFixed(1) : null;
   return (
     <>
-      <h2 style={{ ...S.title, marginBottom: 20 }}>Mes évaluations</h2>
+      <div style={{ ...S.sectionHeader, marginBottom: 18 }}>
+        <span style={S.sectionTitle}>Mes évaluations</span>
+      </div>
       {avg && (
         <div style={{ ...S.card, marginBottom: 16, display:'inline-flex', gap: 12, alignItems:'center' }}>
           <span style={{ fontSize: 36, fontWeight: 800, color:'#f59e0b' }}>{avg}</span>
@@ -672,20 +822,20 @@ function NotificationsPanel({ onClose }) {
 ═════════════════════════════════════════════════════════════════*/
 
 const CLIENT_MENU = [
-  { key:'overview',  icon:'⊞', label:'Tableau de bord' },
-  { key:'demandes',  icon:'📋', label:'Mes demandes' },
-  { key:'offres',    icon:'📩', label:'Offres reçues' },
-  { key:'avis',      icon:'⭐', label:'Laisser un avis' },
-  { key:'compte',    icon:'⚙️', label:'Mon compte' },
+  { key:'overview',  icon:'▦',  label:'Tableau de bord' },
+  { key:'demandes',  icon:'≡',  label:'Mes demandes' },
+  { key:'offres',    icon:'✉',  label:'Offres reçues' },
+  { key:'avis',      icon:'★',  label:'Laisser un avis' },
+  { key:'compte',    icon:'◎',  label:'Mon compte' },
 ];
 
 const PRES_MENU = [
-  { key:'overview',  icon:'⊞', label:'Tableau de bord' },
-  { key:'browse',    icon:'🔍', label:'Parcourir les demandes' },
-  { key:'mesoffres', icon:'📤', label:'Mes offres' },
-  { key:'profil',    icon:'👤', label:'Mon profil' },
-  { key:'evals',     icon:'⭐', label:'Mes évaluations' },
-  { key:'compte',    icon:'⚙️', label:'Mon compte' },
+  { key:'overview',  icon:'▦',  label:'Tableau de bord' },
+  { key:'browse',    icon:'⊕',  label:'Parcourir les demandes' },
+  { key:'mesoffres', icon:'↑',  label:'Mes offres' },
+  { key:'profil',    icon:'◉',  label:'Mon profil' },
+  { key:'evals',     icon:'★',  label:'Mes évaluations' },
+  { key:'compte',    icon:'◎',  label:'Mon compte' },
 ];
 
 export default function Dashboard() {
@@ -777,49 +927,78 @@ export default function Dashboard() {
     }
   };
 
+  const initials = currentUser.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
+  const avatarColor = isClient ? '#2563eb' : '#0d9488';
+  const currentLabel = menu.find(m => m.key === section)?.label || 'Mon compte';
+
   return (
     <div style={S.layout}>
-      {/* Sidebar */}
+      {/* ── Sidebar ── */}
       <aside style={S.sidebar}>
-        <div style={S.logo}>Allo<b style={{ color:'#3b86f7', fontWeight:400 }}>Service</b></div>
-        <div style={{ padding: '0 24px 20px', borderBottom:'1px solid rgba(255,255,255,0.1)', marginBottom: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>{currentUser.name}</div>
-          <div style={{ fontSize: 11, color:'rgba(255,255,255,0.5)', marginTop: 3, textTransform:'capitalize' }}>
-            {isClient ? '👤 Client' : '🔧 Prestataire'}
+        <div style={S.logoWrap}>
+          <div style={S.logoText}>
+            Allo<span style={S.logoAccent}>Service</span>
+          </div>
+          <div style={S.logoSub}>{isClient ? 'Espace client' : 'Espace prestataire'}</div>
+        </div>
+
+        <div style={S.userChip}>
+          <div style={S.avatar(avatarColor)}>{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap',
+              overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.name}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+              {isClient ? 'Client' : 'Prestataire'}
+            </div>
           </div>
         </div>
+
+        <div style={S.navSection}>Navigation</div>
         {menu.map(m => (
           <div key={m.key} style={S.navItem(section === m.key)} onClick={() => setSection(m.key)}>
-            <span style={{ fontSize: 16 }}>{m.icon}</span>
+            <span style={S.navIcon}>{m.icon}</span>
             {m.label}
           </div>
         ))}
-        <div style={{ marginTop:'auto', padding: '16px 24px', borderTop:'1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ ...S.navItem(false), padding: 0, color:'rgba(255,255,255,0.6)', cursor:'pointer' }} onClick={logout}>
-            <span>🚪</span> Déconnexion
+
+        <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.06)', padding: '12px 8px' }}>
+          <div style={{ ...S.navItem(false), color:'rgba(255,255,255,0.45)' }} onClick={logout}>
+            <span style={S.navIcon}>←</span> Déconnexion
           </div>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* ── Main area ── */}
       <main style={S.main}>
-        <div style={S.header}>
-          <div style={S.title}>{menu.find(m => m.key === section)?.label || 'Mon compte'}</div>
-          <div style={{ display:'flex', alignItems:'center', gap:16, position:'relative' }}>
-            <div style={{ position:'relative' }}>
-              <button onClick={() => setShowNotif(v => !v)}
-                style={{ background:'#f1f5f9', border:'none', borderRadius:10, width:40, height:40,
-                  cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                🔔
-              </button>
-              {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} />}
-            </div>
-            <div style={{ fontSize: 13, color:'#64748b' }}>
-              Bonjour, <strong>{currentUser.name}</strong>
+        {/* Topbar */}
+        <div style={S.topbar}>
+          <div>
+            <div style={S.pageTitle}>{currentLabel}</div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap: 10, position:'relative' }}>
+            <button onClick={() => setShowNotif(v => !v)} style={{
+              background: showNotif ? '#eff6ff' : '#f8fafc',
+              border: `1px solid ${showNotif ? '#bfdbfe' : '#e2e8f0'}`,
+              borderRadius: 8, width: 36, height: 36, cursor:'pointer',
+              fontSize: 15, display:'flex', alignItems:'center', justifyContent:'center',
+              transition: 'all 0.15s',
+            }}>🔔</button>
+            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} />}
+            <div style={{
+              height: 36, display:'flex', alignItems:'center', gap: 8,
+              background: '#f8fafc', border: '1px solid #e2e8f0',
+              borderRadius: 8, padding: '0 12px', fontSize: 13, color: '#374151',
+            }}>
+              <div style={{ ...S.avatar(avatarColor), width: 22, height: 22, fontSize: 10, borderRadius: 6 }}>{initials}</div>
+              <span style={{ fontWeight: 500 }}>{currentUser.name?.split(' ')[0]}</span>
             </div>
           </div>
         </div>
-        {renderSection()}
+
+        {/* Page content */}
+        <div style={S.content}>
+          {renderSection()}
+        </div>
       </main>
     </div>
   );

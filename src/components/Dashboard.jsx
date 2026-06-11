@@ -1161,6 +1161,154 @@ function PresOverview({ offres, avis, profile }) {
   );
 }
 
+function DemandesRecues({ onChanged }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [form, setForm] = useState({ devis: '', message: '' });
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/demandes/recues');
+      setItems(res.data || []);
+    } catch { setItems([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openReply = (d) => {
+    setError('');
+    // pre-fill with the pending devis when revising (negotiation)
+    setForm({
+      devis: d.mon_offre?.statut === 'en_attente' ? String(Math.round(d.mon_offre.devis)) : '',
+      message: d.mon_offre?.statut === 'en_attente' ? (d.mon_offre.message || '') : '',
+    });
+    setSelected(d);
+  };
+
+  const submit = async () => {
+    setSending(true); setError('');
+    try {
+      if (selected.mon_offre && selected.mon_offre.statut === 'en_attente') {
+        await api.put(`/api/offres/${selected.mon_offre.id}`, form);
+      } else {
+        await api.post('/api/offres', { demande_id: selected.id, ...form });
+      }
+      setSelected(null);
+      load();
+      onChanged && onChanged();
+    } catch (e) {
+      const errors = e.response?.data?.errors;
+      setError(errors ? Object.values(errors).flat().join(' ') : (e.response?.data?.message || 'Erreur.'));
+    } finally { setSending(false); }
+  };
+
+  return (
+    <>
+      <div style={S.sectionHeader}>
+        <span style={S.sectionTitle}>
+          Demandes reçues <span style={{ color:'#94a3b8', fontWeight:400 }}>({items.length})</span>
+        </span>
+      </div>
+
+      {loading && <p style={{ color:'#64748b', fontSize:13 }}>Chargement...</p>}
+
+      {!loading && items.length === 0 && (
+        <div style={{ ...S.card, ...S.emptyState }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>✉</div>
+          <div style={{ fontWeight: 600, color:'#475569', marginBottom: 4 }}>Aucune demande reçue</div>
+          <div style={{ fontSize: 13 }}>Les clients peuvent vous adresser des demandes directement depuis votre profil.</div>
+        </div>
+      )}
+
+      <div style={{ display:'flex', flexDirection:'column', gap: 12 }}>
+        {items.map(d => {
+          const offre = d.mon_offre;
+          const canReply  = d.statut === 'ouverte' && (!offre || offre.statut === 'refusee');
+          const canRevise = d.statut === 'ouverte' && offre?.statut === 'en_attente';
+          return (
+            <div key={d.id} style={{ ...S.card, display:'flex', flexDirection:'column', gap: 10 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color:'#0f172a' }}>{d.title}</div>
+                  <div style={{ fontSize: 12, color:'#64748b', marginTop: 3 }}>
+                    De <strong>{d.client?.name || 'Client'}</strong> · {d.category?.nom} · pour le {fmtDate(d.date_souhaitee)}
+                  </div>
+                </div>
+                <Badge statut={d.statut} />
+              </div>
+
+              <p style={{ fontSize: 13, color:'#475569', lineHeight: 1.55, margin: 0 }}>{d.description}</p>
+
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                paddingTop: 10, borderTop:'1px solid #f1f5f9', flexWrap:'wrap', gap: 8 }}>
+                <div style={{ fontSize: 13 }}>
+                  {!offre && <span style={{ color:'#94a3b8' }}>Pas encore de devis envoyé</span>}
+                  {offre && (
+                    <span style={{ display:'inline-flex', alignItems:'center', gap: 8 }}>
+                      <span style={{ color:'#64748b' }}>Votre devis :</span>
+                      <strong style={{ color:'#0f172a' }}>{fmt(offre.devis)}</strong>
+                      <Badge statut={offre.statut} />
+                    </span>
+                  )}
+                </div>
+                <div style={{ display:'flex', gap: 8 }}>
+                  {canRevise && (
+                    <button style={S.btn('ghost')} onClick={() => openReply(d)}>Modifier mon devis</button>
+                  )}
+                  {canReply && (
+                    <button style={S.btn()} onClick={() => openReply(d)}>
+                      {offre?.statut === 'refusee' ? 'Proposer un nouveau devis' : 'Répondre avec un devis'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Reply / negotiate modal */}
+      {selected && (
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && setSelected(null)}>
+          <div style={S.modalBox}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color:'#0f172a', margin:'0 0 4px' }}>
+                  {selected.mon_offre?.statut === 'en_attente' ? 'Modifier mon devis' : 'Répondre avec un devis'}
+                </h3>
+                <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>
+                  {selected.title} · demande de {selected.client?.name}
+                </p>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background:'none', border:'none', fontSize:20,
+                color:'#94a3b8', cursor:'pointer', lineHeight:1, marginLeft:12 }}>×</button>
+            </div>
+            {error && <div style={S.alert('error')}>{error}</div>}
+            <label style={S.label}>Votre devis (MAD) *</label>
+            <input style={S.input} type="number" value={form.devis}
+              onChange={e => setForm(f => ({ ...f, devis: e.target.value }))} placeholder="Ex: 450" />
+            <label style={S.label}>Message *</label>
+            <textarea style={{ ...S.input, minHeight: 90, resize:'vertical' }} value={form.message}
+              onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+              placeholder="Détaillez votre proposition : délai, matériel, garantie..." />
+            <div style={{ display:'flex', gap: 10, marginTop: 8 }}>
+              <button style={S.btn()} onClick={submit} disabled={sending}>
+                {sending ? 'Envoi...' : 'Envoyer le devis'}
+              </button>
+              <button style={S.btn('ghost')} onClick={() => setSelected(null)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function BrowseDemandes({ categories }) {
   const [me] = useState(() => user() || {});
   const [demandes, setDemandes] = useState([]);
@@ -1739,6 +1887,7 @@ const CLIENT_MENU = [
 
 const PRES_MENU = [
   { key:'overview',  icon:'▦',  label:'Tableau de bord' },
+  { key:'recues',    icon:'✉',  label:'Demandes reçues' },
   { key:'browse',    icon:'⊕',  label:'Parcourir les demandes' },
   { key:'mesoffres', icon:'↑',  label:'Mes offres' },
   { key:'profil',    icon:'◉',  label:'Mon profil' },
@@ -1845,6 +1994,7 @@ export default function Dashboard() {
       if (section === 'avis')     return <ClientAvis offres={demandes.flatMap(d => (d.offres||[]).map(o => ({...o, demande: d})))} />;
     } else {
       if (section === 'overview')  return <PresOverview offres={offres} avis={avis} profile={profile} />;
+      if (section === 'recues')    return <DemandesRecues onChanged={loadData} />;
       if (section === 'browse')    return <BrowseDemandes categories={categories} />;
       if (section === 'mesoffres') return <MesOffres offres={offres} onDeleted={id => { setOffres(o => o.filter(x => x.id !== id)); }} />;
       if (section === 'profil')    return <MonProfil profile={profile} categories={categories} onSaved={loadData} />;

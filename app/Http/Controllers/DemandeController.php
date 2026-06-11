@@ -9,13 +9,22 @@ class DemandeController extends Controller
     public function index(Request $request)
     {
         $user = $this->currentUser();
-        $query = Demande::with(['client', 'category']);
+        $query = Demande::with(['client', 'category'])->latest();
 
         if ($user->isClient()) {
             $query->where('client_id', $user->id);
         }
 
-        return response()->json($query->paginate(15));
+        if ($user->isPrestataire()) {
+            // public demandes + those addressed to this prestataire,
+            // never those addressed to someone else
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('prestataire_id')
+                  ->orWhere('prestataire_id', $user->id);
+            });
+        }
+
+        return response()->json($query->paginate(30));
     }
 
     public function store(Request $request)
@@ -28,14 +37,23 @@ class DemandeController extends Controller
             'title'          => 'required|string|max:150',
             'description'    => 'required|string|max:2000',
             'category_id'    => 'required|exists:categories,id',
+            'prestataire_id' => 'nullable|exists:users,id',
             'budget'         => 'nullable|numeric|min:1|max:999999',
             'city'           => 'nullable|string|max:100',
             'date_souhaitee' => 'required|date|after:today',
         ]);
 
+        if ($request->prestataire_id) {
+            $target = \App\Models\User::find($request->prestataire_id);
+            if (!$target || !$target->isPrestataire()) {
+                return response()->json(['message' => 'Le destinataire choisi n\'est pas un prestataire'], 422);
+            }
+        }
+
         $demande = Demande::create([
             'client_id'      => $this->currentUser()->id,
             'category_id'    => $request->category_id,
+            'prestataire_id' => $request->prestataire_id,
             'title'          => $request->title,
             'description'    => $request->description,
             'budget'         => $request->budget,

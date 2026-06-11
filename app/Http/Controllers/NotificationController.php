@@ -67,10 +67,28 @@ class NotificationController extends Controller
                 ];
             }
 
-            // New open demandes in their category
+            // Demandes addressed directly to this prestataire
+            $directes = Demande::with('client')
+                ->where('prestataire_id', $user->id)
+                ->where('statut', 'ouverte')
+                ->latest()
+                ->take(10)
+                ->get();
+
+            foreach ($directes as $demande) {
+                $notifications[] = [
+                    'type'    => 'demande_directe',
+                    'message' => ($demande->client->name ?? 'Un client') . " vous a adressé une demande : \"{$demande->title}\"",
+                    'date'    => $demande->created_at,
+                    'link_id' => $demande->id,
+                ];
+            }
+
+            // New open public demandes in their category
             $profile = $user->prestataireProfile;
             if ($profile) {
                 $newDemandes = Demande::where('category_id', $profile->category_id)
+                    ->whereNull('prestataire_id')
                     ->where('statut', 'ouverte')
                     ->latest()
                     ->take(10)

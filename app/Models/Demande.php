@@ -8,6 +8,7 @@ class Demande extends Model
     protected $fillable = [
         'client_id',
         'category_id',
+        'prestataire_id',
         'title',
         'description',
         'budget',
@@ -18,6 +19,10 @@ class Demande extends Model
 
     public function client() {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+    public function prestataire() {
+        return $this->belongsTo(User::class, 'prestataire_id');
     }
 
     public function category() {

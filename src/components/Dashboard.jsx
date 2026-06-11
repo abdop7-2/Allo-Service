@@ -20,6 +20,7 @@ const STATUT_LABEL = {
   en_attente: { text: 'En attente', color: '#94a3b8' },
   acceptee:   { text: 'Acceptée',   color: '#22c55e' },
   refusee:    { text: 'Refusée',    color: '#ef4444' },
+  negociation:{ text: 'Négociation',color: '#f97316' },
 };
 
 function Badge({ statut }) {
@@ -942,8 +943,30 @@ function ClientDemandes({ demandes, categories, onCreated, onDeleted, intent, on
   );
 }
 
-function ClientOffres({ demandes, onAccept, onRefuse }) {
+function ClientOffres({ demandes, onAccept, onRefuse, onNegotiated }) {
   const allOffres = demandes.flatMap(d => (d.offres || []).map(o => ({ ...o, demande: d })));
+  const [negotiating, setNegotiating] = useState(null); // offre being negotiated
+  const [counter, setCounter] = useState('');
+  const [error, setError] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const openNegotiate = (o) => {
+    setError('');
+    setCounter(o.counter_devis ? String(Math.round(o.counter_devis)) : '');
+    setNegotiating(o);
+  };
+
+  const sendCounter = async () => {
+    setSending(true); setError('');
+    try {
+      await api.put(`/api/offres/${negotiating.id}/negocier`, { counter_devis: counter });
+      setNegotiating(null);
+      onNegotiated && onNegotiated();
+    } catch (e) {
+      const errors = e.response?.data?.errors;
+      setError(errors ? Object.values(errors).flat().join(' ') : (e.response?.data?.message || 'Erreur.'));
+    } finally { setSending(false); }
+  };
 
   return (
     <>
@@ -960,13 +983,23 @@ function ClientOffres({ demandes, onAccept, onRefuse }) {
               <tr key={o.id}>
                 <td style={S.td}><span style={{ fontWeight: 600 }}>{o.demande.title}</span></td>
                 <td style={S.td}>{o.prestataire?.name || '—'}</td>
-                <td style={S.td}>{fmt(o.devis)}</td>
-                <td style={{ ...S.td, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.message}</td>
+                <td style={S.td}>
+                  <div style={{ fontWeight: 600 }}>{fmt(o.devis)}</div>
+                  {o.statut === 'negociation' && o.counter_devis && (
+                    <div style={{ fontSize: 11, color:'#f97316', marginTop: 2 }}>
+                      Vous proposez {fmt(o.counter_devis)}
+                    </div>
+                  )}
+                </td>
+                <td style={{ ...S.td, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.message}</td>
                 <td style={S.td}><Badge statut={o.statut} /></td>
                 <td style={S.td}>
-                  {o.statut === 'en_attente' && (
-                    <div style={{ display:'flex', gap: 6 }}>
+                  {['en_attente', 'negociation'].includes(o.statut) && (
+                    <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
                       <button style={{ ...S.btn('success'), padding: '5px 12px', fontSize: 12 }} onClick={() => onAccept(o.id)}>Accepter</button>
+                      <button style={{ ...S.btn('ghost'), padding: '5px 12px', fontSize: 12, color:'#f97316' }} onClick={() => openNegotiate(o)}>
+                        {o.statut === 'negociation' ? 'Re-négocier' : 'Négocier'}
+                      </button>
                       <button style={{ ...S.btn('danger'),  padding: '5px 12px', fontSize: 12 }} onClick={() => onRefuse(o.id)}>Refuser</button>
                     </div>
                   )}
@@ -977,6 +1010,37 @@ function ClientOffres({ demandes, onAccept, onRefuse }) {
           </tbody>
         </table>
       </div>
+
+      {/* Negotiate modal */}
+      {negotiating && (
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && setNegotiating(null)}>
+          <div style={{ ...S.modalBox, maxWidth: 420 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color:'#0f172a', margin:'0 0 4px' }}>Négocier le devis</h3>
+                <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>
+                  {negotiating.prestataire?.name} demande <strong>{fmt(negotiating.devis)}</strong>
+                </p>
+              </div>
+              <button onClick={() => setNegotiating(null)} style={{ background:'none', border:'none', fontSize:20,
+                color:'#94a3b8', cursor:'pointer', lineHeight:1 }}>×</button>
+            </div>
+            {error && <div style={S.alert('error')}>{error}</div>}
+            <label style={S.label}>Votre proposition (MAD) *</label>
+            <input style={S.input} type="number" value={counter} autoFocus
+              onChange={e => setCounter(e.target.value)} placeholder={`Ex: ${Math.round(negotiating.devis * 0.8)}`} />
+            <p style={{ fontSize: 12, color:'#94a3b8', margin:'0 0 12px' }}>
+              Le prestataire verra votre proposition et pourra ajuster son devis.
+            </p>
+            <div style={{ display:'flex', gap: 10 }}>
+              <button style={S.btn()} onClick={sendCounter} disabled={sending || !counter}>
+                {sending ? 'Envoi...' : 'Envoyer la proposition'}
+              </button>
+              <button style={S.btn('ghost')} onClick={() => setNegotiating(null)}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1182,10 +1246,11 @@ function DemandesRecues({ onChanged }) {
 
   const openReply = (d) => {
     setError('');
-    // pre-fill with the pending devis when revising (negotiation)
+    // pre-fill with the current devis when revising or answering a negotiation
+    const editable = ['en_attente', 'negociation'].includes(d.mon_offre?.statut);
     setForm({
-      devis: d.mon_offre?.statut === 'en_attente' ? String(Math.round(d.mon_offre.devis)) : '',
-      message: d.mon_offre?.statut === 'en_attente' ? (d.mon_offre.message || '') : '',
+      devis: editable ? String(Math.round(d.mon_offre.devis)) : '',
+      message: editable ? (d.mon_offre.message || '') : '',
     });
     setSelected(d);
   };
@@ -1193,7 +1258,7 @@ function DemandesRecues({ onChanged }) {
   const submit = async () => {
     setSending(true); setError('');
     try {
-      if (selected.mon_offre && selected.mon_offre.statut === 'en_attente') {
+      if (selected.mon_offre && ['en_attente', 'negociation'].includes(selected.mon_offre.statut)) {
         await api.put(`/api/offres/${selected.mon_offre.id}`, form);
       } else {
         await api.post('/api/offres', { demande_id: selected.id, ...form });
@@ -1229,7 +1294,7 @@ function DemandesRecues({ onChanged }) {
         {items.map(d => {
           const offre = d.mon_offre;
           const canReply  = d.statut === 'ouverte' && (!offre || offre.statut === 'refusee');
-          const canRevise = d.statut === 'ouverte' && offre?.statut === 'en_attente';
+          const canRevise = d.statut === 'ouverte' && ['en_attente', 'negociation'].includes(offre?.statut);
           return (
             <div key={d.id} style={{ ...S.card, display:'flex', flexDirection:'column', gap: 10 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap: 10 }}>
@@ -1249,16 +1314,23 @@ function DemandesRecues({ onChanged }) {
                 <div style={{ fontSize: 13 }}>
                   {!offre && <span style={{ color:'#94a3b8' }}>Pas encore de devis envoyé</span>}
                   {offre && (
-                    <span style={{ display:'inline-flex', alignItems:'center', gap: 8 }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap: 8, flexWrap:'wrap' }}>
                       <span style={{ color:'#64748b' }}>Votre devis :</span>
                       <strong style={{ color:'#0f172a' }}>{fmt(offre.devis)}</strong>
                       <Badge statut={offre.statut} />
+                      {offre.statut === 'negociation' && offre.counter_devis && (
+                        <span style={{ color:'#f97316', fontWeight: 600, fontSize: 12.5 }}>
+                          💬 Le client propose {fmt(offre.counter_devis)}
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>
                 <div style={{ display:'flex', gap: 8 }}>
                   {canRevise && (
-                    <button style={S.btn('ghost')} onClick={() => openReply(d)}>Modifier mon devis</button>
+                    <button style={offre?.statut === 'negociation' ? S.btn() : S.btn('ghost')} onClick={() => openReply(d)}>
+                      {offre?.statut === 'negociation' ? 'Répondre à la proposition' : 'Modifier mon devis'}
+                    </button>
                   )}
                   {canReply && (
                     <button style={S.btn()} onClick={() => openReply(d)}>
@@ -1279,10 +1351,15 @@ function DemandesRecues({ onChanged }) {
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 16 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color:'#0f172a', margin:'0 0 4px' }}>
-                  {selected.mon_offre?.statut === 'en_attente' ? 'Modifier mon devis' : 'Répondre avec un devis'}
+                  {selected.mon_offre?.statut === 'negociation' ? 'Répondre à la proposition'
+                    : selected.mon_offre?.statut === 'en_attente' ? 'Modifier mon devis'
+                    : 'Répondre avec un devis'}
                 </h3>
                 <p style={{ fontSize: 13, color:'#64748b', margin: 0 }}>
                   {selected.title} · demande de {selected.client?.name}
+                  {selected.mon_offre?.statut === 'negociation' && selected.mon_offre.counter_devis && (
+                    <> · <strong style={{ color:'#f97316' }}>le client propose {fmt(selected.mon_offre.counter_devis)}</strong></>
+                  )}
                 </p>
               </div>
               <button onClick={() => setSelected(null)} style={{ background:'none', border:'none', fontSize:20,
@@ -1450,7 +1527,12 @@ function MesOffres({ offres, onDeleted }) {
             {offres.map(o => (
               <tr key={o.id}>
                 <td style={S.td}><span style={{ fontWeight:600 }}>{o.demande?.title || `Demande #${o.demande_id}`}</span></td>
-                <td style={S.td}>{fmt(o.devis)}</td>
+                <td style={S.td}>
+                  <div style={{ fontWeight: 600 }}>{fmt(o.devis)}</div>
+                  {o.statut === 'negociation' && o.counter_devis && (
+                    <div style={{ fontSize: 11, color:'#f97316', marginTop: 2 }}>💬 Client : {fmt(o.counter_devis)}</div>
+                  )}
+                </td>
                 <td style={{ ...S.td, maxWidth:220, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{o.message}</td>
                 <td style={S.td}><Badge statut={o.statut} /></td>
                 <td style={S.td}>
@@ -1841,11 +1923,12 @@ function NotificationsPanel({ onClose }) {
   }, []);
 
   const TYPE_ICON = {
-    new_offre:       '📩',
-    offre_acceptee:  '✅',
-    offre_refusee:   '❌',
-    new_demande:     '📋',
-    demande_directe: '📌',
+    new_offre:         '📩',
+    offre_acceptee:    '✅',
+    offre_refusee:     '❌',
+    offre_negociation: '💬',
+    new_demande:       '📋',
+    demande_directe:   '📌',
   };
 
   return (
@@ -1990,7 +2073,7 @@ export default function Dashboard() {
       if (section === 'demandes') return <ClientDemandes demandes={demandes} categories={categories}
         intent={demandeIntent} onIntentConsumed={() => setDemandeIntent(null)}
         onCreated={loadData} onDeleted={id => setDemandes(d => d.filter(x => x.id !== id))} />;
-      if (section === 'offres')   return <ClientOffres demandes={demandes} onAccept={handleAcceptOffre} onRefuse={handleRefuseOffre} />;
+      if (section === 'offres')   return <ClientOffres demandes={demandes} onAccept={handleAcceptOffre} onRefuse={handleRefuseOffre} onNegotiated={loadData} />;
       if (section === 'avis')     return <ClientAvis offres={demandes.flatMap(d => (d.offres||[]).map(o => ({...o, demande: d})))} />;
     } else {
       if (section === 'overview')  return <PresOverview offres={offres} avis={avis} profile={profile} />;

@@ -22,22 +22,22 @@ const STATS = [
 
 const HOW_IT_WORKS = [
   {
-    icon: "🔍",
+    img: null, // TODO: replace with your image, e.g. import step1 from '../assets/step1.jpg'
     title: "Décrivez votre besoin",
     desc: "Publiez votre demande en quelques secondes : type de travaux, budget, date souhaitée.",
   },
   {
-    icon: "📩",
+    img: null, // TODO: replace with your image
     title: "Recevez des offres",
     desc: "Des prestataires qualifiés près de chez vous vous envoient leurs devis directement.",
   },
   {
-    icon: "✅",
+    img: null, // TODO: replace with your image
     title: "Choisissez & confirmez",
     desc: "Comparez les profils, les notes et les prix, puis acceptez l'offre qui vous convient.",
   },
   {
-    icon: "⭐",
+    img: null, // TODO: replace with your image
     title: "Évaluez le service",
     desc: "Une fois la mission terminée, laissez un avis pour aider la communauté.",
   },
@@ -177,8 +177,13 @@ export default function AlloServiceLanding() {
         <div className="as-grid">
           {HOW_IT_WORKS.map((step, i) => (
             <div key={i} className="as-card">
-              <div className="as-icon">{step.icon}</div>
-              <h3 style={{ color: "#fff", marginBottom: 10, fontSize: "clamp(15px,2.5vw,17px)" }}>
+              <div className="as-img-placeholder">
+                {step.img
+                  ? <img src={step.img} alt={step.title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} />
+                  : null
+                }
+              </div>
+              <h3 style={{ color: "#fff", margin: "14px 0 8px", fontSize: "clamp(15px,2.5vw,17px)" }}>
                 {step.title}
               </h3>
               <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "clamp(13px,2vw,15px)", lineHeight: 1.55, margin: 0 }}>

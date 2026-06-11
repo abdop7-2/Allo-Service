@@ -65,6 +65,34 @@ class DemandeController extends Controller
         return response()->json($demande, 201);
     }
 
+    // demandes addressed to the authenticated prestataire, with his own devis attached
+    public function recues()
+    {
+        $user = $this->currentUser();
+
+        if (!$user->isPrestataire()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $demandes = Demande::with(['client', 'category'])
+            ->where('prestataire_id', $user->id)
+            ->latest()
+            ->get();
+
+        $mesOffres = \App\Models\Offre::where('prestataire_id', $user->id)
+            ->whereIn('demande_id', $demandes->pluck('id'))
+            ->latest()
+            ->get()
+            ->groupBy('demande_id');
+
+        $demandes->transform(function ($d) use ($mesOffres) {
+            $d->mon_offre = optional($mesOffres->get($d->id))->first();
+            return $d;
+        });
+
+        return response()->json($demandes);
+    }
+
     public function show(int $id)
     {
         $demande = Demande::with(['client', 'category', 'offres'])

@@ -70,6 +70,29 @@ class OffreController extends Controller
         return response()->json($offres);
     }
 
+    // negotiation: the prestataire can revise his devis while it's still pending
+    public function update(Request $request, int $id)
+    {
+        $offre = Offre::findOrFail($id);
+
+        if ($this->currentUser()->id !== $offre->prestataire_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($offre->statut !== 'en_attente') {
+            return response()->json(['message' => 'Seules les offres en attente peuvent être modifiées'], 422);
+        }
+
+        $request->validate([
+            'devis'   => 'required|numeric|min:1|max:999999',
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $offre->update($request->only(['devis', 'message']));
+
+        return response()->json($offre);
+    }
+
     public function destroy(int $id)
     {
         $offre = Offre::findOrFail($id);

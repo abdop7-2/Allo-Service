@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Demandes
     Route::get('/demandes',           [DemandeController::class, 'index']);
     Route::post('/demandes',          [DemandeController::class, 'store']);
+    Route::get('/demandes/recues',    [DemandeController::class, 'recues']); // before {id}
     Route::get('/demandes/{id}',      [DemandeController::class, 'show']);
     Route::put('/demandes/{id}',      [DemandeController::class, 'update']);
     Route::delete('/demandes/{id}',   [DemandeController::class, 'destroy']);
@@ -49,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Offres
     Route::post('/offres',                        [OffreController::class, 'store']);
     Route::put('/offres/{id}/statut',             [OffreController::class, 'updateStatut']);
+    Route::put('/offres/{id}',                    [OffreController::class, 'update']);
     Route::delete('/offres/{id}',                 [OffreController::class, 'destroy']);
     Route::get('/offres/mes-offres',              [OffreController::class, 'myOffres']);
     Route::get('/demandes/{id}/offres',           [OffreController::class, 'offresByDemande']);

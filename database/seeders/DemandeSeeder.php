@@ -75,6 +75,16 @@ class DemandeSeeder extends Seeder
                 'date_souhaitee' => now()->addDays(7)->toDateString(),
                 'statut'         => 'terminee',
             ],
+            [
+                'client_id'      => $alice->id,
+                'category_id'    => 2,
+                'title'          => 'Installation de luminaires au salon',
+                'description'    => 'Pose de trois suspensions et vérification du tableau électrique.',
+                'budget'         => null,
+                'city'           => null,
+                'date_souhaitee' => now()->addDays(6)->toDateString(),
+                'statut'         => 'ouverte',
+            ],
         ];
 
         foreach ($demandes as $data) {

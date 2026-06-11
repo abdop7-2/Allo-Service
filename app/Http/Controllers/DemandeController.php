@@ -16,11 +16,16 @@ class DemandeController extends Controller
         }
 
         if ($user->isPrestataire()) {
-            // public demandes + those addressed to this prestataire,
-            // never those addressed to someone else
-            $query->where(function ($q) use ($user) {
-                $q->whereNull('prestataire_id')
-                  ->orWhere('prestataire_id', $user->id);
+            // demandes addressed to him + public demandes of HIS profession only
+            $profile = $user->prestataireProfile;
+            $query->where(function ($q) use ($user, $profile) {
+                $q->where('prestataire_id', $user->id);
+                if ($profile) {
+                    $q->orWhere(function ($q2) use ($profile) {
+                        $q2->whereNull('prestataire_id')
+                           ->where('category_id', $profile->category_id);
+                    });
+                }
             });
         }
 

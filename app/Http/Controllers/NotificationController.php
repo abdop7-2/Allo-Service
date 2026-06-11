@@ -49,15 +49,24 @@ class NotificationController extends Controller
         }
 
         if ($user->isPrestataire()) {
-            // Offers accepted or refused
+            // Offers accepted, refused or under negotiation
             $myOffres = Offre::with('demande')
                 ->where('prestataire_id', $user->id)
-                ->whereIn('statut', ['acceptee', 'refusee'])
+                ->whereIn('statut', ['acceptee', 'refusee', 'negociation'])
                 ->latest()
                 ->take(20)
                 ->get();
 
             foreach ($myOffres as $offre) {
+                if ($offre->statut === 'negociation') {
+                    $notifications[] = [
+                        'type'    => 'offre_negociation',
+                        'message' => "Le client propose " . number_format($offre->counter_devis, 0, ',', ' ') . " MAD pour \"{$offre->demande->title}\"",
+                        'date'    => $offre->updated_at,
+                        'link_id' => $offre->demande_id,
+                    ];
+                    continue;
+                }
                 $label = $offre->statut === 'acceptee' ? 'acceptée ✓' : 'refusée';
                 $notifications[] = [
                     'type'    => 'offre_' . $offre->statut,

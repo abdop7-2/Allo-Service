@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Offres
     Route::post('/offres',                        [OffreController::class, 'store']);
     Route::put('/offres/{id}/statut',             [OffreController::class, 'updateStatut']);
+    Route::put('/offres/{id}/negocier',           [OffreController::class, 'negocier']);
     Route::put('/offres/{id}',                    [OffreController::class, 'update']);
     Route::delete('/offres/{id}',                 [OffreController::class, 'destroy']);
     Route::get('/offres/mes-offres',              [OffreController::class, 'myOffres']);

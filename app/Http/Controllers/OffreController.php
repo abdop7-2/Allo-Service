@@ -70,7 +70,32 @@ class OffreController extends Controller
         return response()->json($offres);
     }
 
-    // negotiation: the prestataire can revise his devis while it's still pending
+    // client counter-proposes a price on a pending devis
+    public function negocier(Request $request, int $id)
+    {
+        $offre = Offre::with('demande')->findOrFail($id);
+
+        if ($this->currentUser()->id !== $offre->demande->client_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (!in_array($offre->statut, ['en_attente', 'negociation'])) {
+            return response()->json(['message' => 'Cette offre ne peut plus être négociée'], 422);
+        }
+
+        $request->validate([
+            'counter_devis' => 'required|numeric|min:1|max:999999',
+        ]);
+
+        $offre->update([
+            'counter_devis' => $request->counter_devis,
+            'statut'        => 'negociation',
+        ]);
+
+        return response()->json($offre);
+    }
+
+    // the prestataire revises his devis — also how he answers a client's counter-proposal
     public function update(Request $request, int $id)
     {
         $offre = Offre::findOrFail($id);
@@ -79,8 +104,8 @@ class OffreController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        if ($offre->statut !== 'en_attente') {
-            return response()->json(['message' => 'Seules les offres en attente peuvent être modifiées'], 422);
+        if (!in_array($offre->statut, ['en_attente', 'negociation'])) {
+            return response()->json(['message' => 'Seules les offres en attente ou en négociation peuvent être modifiées'], 422);
         }
 
         $request->validate([
@@ -88,7 +113,12 @@ class OffreController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
-        $offre->update($request->only(['devis', 'message']));
+        $offre->update([
+            'devis'         => $request->devis,
+            'message'       => $request->message,
+            'statut'        => 'en_attente', // back in the client's court
+            'counter_devis' => null,
+        ]);
 
         return response()->json($offre);
     }

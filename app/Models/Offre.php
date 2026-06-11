@@ -9,6 +9,7 @@ class Offre extends Model
         'demande_id',
         'prestataire_id',
         'devis',
+        'counter_devis',
         'message',
         'statut'
     ];

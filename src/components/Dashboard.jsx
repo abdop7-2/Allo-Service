@@ -556,7 +556,7 @@ const PRES_MENU = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const currentUser = user();
+  const [currentUser] = useState(() => user()); // stable reference — read once on mount
   const [section, setSection] = useState('overview');
 
   // shared data

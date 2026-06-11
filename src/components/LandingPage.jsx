@@ -82,7 +82,6 @@ function Stat({ stat }) {
 }
 
 export default function AlloServiceLanding() {
-  const [query, setQuery] = useState("");
   const particlesRef = useRef(null);
   const howItWorksRef = useRef(null);
   const navigate = useNavigate();

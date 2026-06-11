@@ -1,7 +1,12 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Avis;
+use App\Models\Demande;
+use App\Models\Offre;
+use App\Models\PrestataireProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -37,5 +42,30 @@ class UserController extends Controller
         $user->update(['password' => Hash::make($request->new_password)]);
 
         return response()->json(['message' => 'Mot de passe mis à jour avec succès']);
+    }
+
+    public function destroy()
+    {
+        $user = $this->currentUser();
+
+        // explicit ordered cleanup so FK constraints can't block the delete
+        DB::transaction(function () use ($user) {
+            $user->tokens()->delete();
+
+            Avis::where('client_id', $user->id)
+                ->orWhere('prestataire_id', $user->id)
+                ->delete();
+
+            $demandeIds = Demande::where('client_id', $user->id)->pluck('id');
+            Offre::whereIn('demande_id', $demandeIds)->delete();
+            Offre::where('prestataire_id', $user->id)->delete();
+            Demande::whereIn('id', $demandeIds)->delete();
+
+            PrestataireProfile::where('user_id', $user->id)->delete();
+
+            $user->delete();
+        });
+
+        return response()->json(['message' => 'Compte supprimé définitivement']);
     }
 }

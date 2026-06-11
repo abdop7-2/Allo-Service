@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'https://morale-bacterium-avid.ngrok-free.app',
-  headers: { Accept: 'application/json' },
+  headers: { Accept: 'application/json', 'ngrok-skip-browser-warning': 'true' },
 });
 
 api.interceptors.request.use((config) => {

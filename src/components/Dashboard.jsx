@@ -701,11 +701,6 @@ export default function Dashboard() {
   const [profile,  setProfile]  = useState(null);
   const [categories, setCategories] = useState([]);
 
-  useEffect(() => {
-    if (!currentUser) { navigate('/login'); return; }
-    loadData();
-  }, [loadData]);
-
   const loadData = useCallback(async () => {
     try {
       const [catRes] = await Promise.all([
@@ -741,6 +736,11 @@ export default function Dashboard() {
       if (e.response?.status === 401) { localStorage.clear(); navigate('/login'); }
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    if (!currentUser) { navigate('/login'); return; }
+    loadData();
+  }, [loadData]);
 
   const logout = () => {
     api.post('/api/logout').finally(() => { localStorage.clear(); navigate('/login'); });

@@ -1,12 +1,52 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import api from './api';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
   const [role, setRole] = useState('client');
 
+  // Login state
+  const [loginData, setLoginData]   = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Register state
+  const [regData, setRegData]     = useState({ name: '', email: '', phone: '', password: '' });
+  const [regError, setRegError]   = useState('');
+  const [regLoading, setRegLoading] = useState(false);
+
   const handleRegisterClick = () => setIsActive(true);
-  const handleLoginClick = () => setIsActive(false);
+  const handleLoginClick    = () => setIsActive(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError(''); setLoginLoading(true);
+    try {
+      const res = await api.post('/api/login', loginData);
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user',  JSON.stringify(res.data.user));
+      navigate('/dashboard');
+    } catch (err) {
+      setLoginError(err.response?.data?.message || 'Email ou mot de passe incorrect.');
+    } finally { setLoginLoading(false); }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegError(''); setRegLoading(true);
+    try {
+      const res = await api.post('/api/register', { ...regData, role });
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user',  JSON.stringify(res.data.user));
+      navigate('/dashboard');
+    } catch (err) {
+      const errors = err.response?.data?.errors;
+      setRegError(errors ? Object.values(errors).flat().join(' ') : 'Erreur lors de l\'inscription.');
+    } finally { setRegLoading(false); }
+  };
 
   return (
     <>
@@ -259,48 +299,38 @@ const LoginPage = () => {
       <div className={`container ${isActive ? 'active' : ''}`}>
         {/* Formulaire Inscription */}
         <div className="form-container sign-up">
-          <form>
+          <form onSubmit={handleRegister}>
             <h1>Créer un compte</h1>
             <span>Vous êtes :</span>
             <div className="role-selector">
               <label className={role === 'client' ? 'selected' : ''}>
-                <input
-                  type="radio"
-                  name="role"
-                  value="client"
-                  checked={role === 'client'}
-                  onChange={() => setRole('client')}
-                />
+                <input type="radio" name="role" value="client" checked={role === 'client'} onChange={() => setRole('client')} />
                 <i className="fa-solid fa-user"></i> Client
               </label>
               <label className={role === 'prestataire' ? 'selected' : ''}>
-                <input
-                  type="radio"
-                  name="role"
-                  value="prestataire"
-                  checked={role === 'prestataire'}
-                  onChange={() => setRole('prestataire')}
-                />
+                <input type="radio" name="role" value="prestataire" checked={role === 'prestataire'} onChange={() => setRole('prestataire')} />
                 <i className="fa-solid fa-briefcase"></i> Prestataire
               </label>
             </div>
-            <input type="text" placeholder="Nom complet" />
-            <input type="email" placeholder="Adresse e-mail" />
-            <input type="tel" placeholder="Téléphone (optionnel)" />
-            <input type="password" placeholder="Mot de passe" />
-            <button type="button">S'inscrire</button>
+            {regError && <p style={{ color:'#ef4444', fontSize:12, margin:'4px 0', textAlign:'center' }}>{regError}</p>}
+            <input type="text"     placeholder="Nom complet"           value={regData.name}     onChange={e => setRegData(d => ({...d, name:e.target.value}))}     required />
+            <input type="email"    placeholder="Adresse e-mail"        value={regData.email}    onChange={e => setRegData(d => ({...d, email:e.target.value}))}    required />
+            <input type="tel"      placeholder="Téléphone (optionnel)" value={regData.phone}    onChange={e => setRegData(d => ({...d, phone:e.target.value}))}    />
+            <input type="password" placeholder="Mot de passe"          value={regData.password} onChange={e => setRegData(d => ({...d, password:e.target.value}))} required />
+            <button type="submit" disabled={regLoading}>{regLoading ? 'Inscription...' : "S'inscrire"}</button>
           </form>
         </div>
 
         {/* Formulaire Connexion */}
         <div className="form-container sign-in">
-          <form>
+          <form onSubmit={handleLogin}>
             <h1>Connexion</h1>
             <span>Connectez-vous avec votre e-mail</span>
-            <input type="email" placeholder="Adresse e-mail" />
-            <input type="password" placeholder="Mot de passe" />
+            {loginError && <p style={{ color:'#ef4444', fontSize:12, margin:'4px 0', textAlign:'center' }}>{loginError}</p>}
+            <input type="email"    placeholder="Adresse e-mail" value={loginData.email}    onChange={e => setLoginData(d => ({...d, email:e.target.value}))}    required />
+            <input type="password" placeholder="Mot de passe"   value={loginData.password} onChange={e => setLoginData(d => ({...d, password:e.target.value}))} required />
             <a href="#">Mot de passe oublié ?</a>
-            <button type="button">Se connecter</button>
+            <button type="submit" disabled={loginLoading}>{loginLoading ? 'Connexion...' : 'Se connecter'}</button>
             <div className="signin-footer">
               <span>Pas encore de compte ?</span>
               <a href="#" onClick={(e) => { e.preventDefault(); handleRegisterClick(); }}>Créer un compte</a>

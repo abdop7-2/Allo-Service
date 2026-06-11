@@ -190,6 +190,263 @@ function StarRating({ value, onChange }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   CLIENT FEED  (home — discovery)
+═════════════════════════════════════════════════════════════════*/
+
+function ClientFeed({ categories, onNewDemande }) {
+  const [prestataires, setPrestataires] = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [catFilter, setCatFilter]       = useState('');
+  const [search, setSearch]             = useState('');
+  const [selected, setSelected]         = useState(null);
+  const [avis, setAvis]                 = useState({});
+
+  const load = useCallback(async (cat = '') => {
+    setLoading(true);
+    try {
+      const params = cat ? `?category_id=${cat}` : '';
+      const res = await api.get(`/api/prestataires${params}`);
+      setPrestataires(res.data?.data || res.data || []);
+    } catch { setPrestataires([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(catFilter); }, [load, catFilter]);
+
+  const openProfile = async (p) => {
+    setSelected(p);
+    if (!avis[p.user_id]) {
+      try {
+        const r = await api.get(`/api/prestataires/${p.user_id}/avis`);
+        setAvis(prev => ({ ...prev, [p.user_id]: r.data?.data || r.data || [] }));
+      } catch { setAvis(prev => ({ ...prev, [p.user_id]: [] })); }
+    }
+  };
+
+  const displayed = prestataires.filter(p =>
+    !search || p.name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.category?.nom?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const avgRating = (userId) => {
+    const list = avis[userId] || [];
+    if (!list.length) return null;
+    return (list.reduce((s, a) => s + a.note, 0) / list.length).toFixed(1);
+  };
+
+  const COLORS = ['#2563eb','#0d9488','#7c3aed','#db2777','#ea580c','#16a34a'];
+  const getColor = (name) => COLORS[(name?.charCodeAt(0) || 0) % COLORS.length];
+
+  return (
+    <>
+      {/* Header bar */}
+      <div style={{ marginBottom: 22 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', marginBottom: 4 }}>
+          Trouvez votre prestataire
+        </div>
+        <div style={{ fontSize: 14, color: '#64748b' }}>
+          {displayed.length} professionnel{displayed.length !== 1 ? 's' : ''} disponible{displayed.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Search + filter row */}
+      <div style={{ display:'flex', gap: 10, marginBottom: 20, flexWrap:'wrap' }}>
+        <div style={{ position:'relative', flex: 1, minWidth: 200 }}>
+          <span style={{ position:'absolute', left: 11, top:'50%', transform:'translateY(-50%)',
+            color:'#94a3b8', fontSize: 14, pointerEvents:'none' }}>⌕</span>
+          <input
+            style={{ ...S.input, paddingLeft: 30, marginBottom: 0 }}
+            placeholder="Rechercher un nom, une catégorie..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          style={{ ...S.input, width: 190, marginBottom: 0 }}
+          value={catFilter}
+          onChange={e => setCatFilter(e.target.value)}
+        >
+          <option value="">Toutes les catégories</option>
+          {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
+        <button style={S.btn()} onClick={onNewDemande}>+ Publier une demande</button>
+      </div>
+
+      {/* Category chips */}
+      {categories.length > 0 && (
+        <div style={{ display:'flex', gap: 8, flexWrap:'wrap', marginBottom: 22 }}>
+          <button
+            onClick={() => setCatFilter('')}
+            style={{
+              padding: '5px 14px', borderRadius: 20, border: 'none', cursor:'pointer', fontSize: 12.5, fontWeight: 500,
+              background: !catFilter ? '#0f172a' : '#f1f5f9',
+              color: !catFilter ? '#fff' : '#64748b',
+              transition: 'all 0.15s',
+            }}>Tous</button>
+          {categories.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCatFilter(catFilter === String(c.id) ? '' : String(c.id))}
+              style={{
+                padding: '5px 14px', borderRadius: 20, border: 'none', cursor:'pointer', fontSize: 12.5, fontWeight: 500,
+                background: catFilter === String(c.id) ? '#0f172a' : '#f1f5f9',
+                color: catFilter === String(c.id) ? '#fff' : '#64748b',
+                transition: 'all 0.15s',
+              }}>{c.nom}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Grid */}
+      {loading && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap: 14 }}>
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} style={{ ...S.card, height: 180, background: '#f8fafc', animation:'pulse 1.5s infinite' }} />
+          ))}
+        </div>
+      )}
+
+      {!loading && displayed.length === 0 && (
+        <div style={S.emptyState}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontWeight: 600, color: '#475569', marginBottom: 4 }}>Aucun prestataire trouvé</div>
+          <div style={{ fontSize: 13 }}>Essayez une autre catégorie ou publiez une demande</div>
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap: 14 }}>
+        {displayed.map(p => {
+          const rating = avgRating(p.user_id);
+          const color  = getColor(p.name);
+          const initials = p.name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || '?';
+          return (
+            <div
+              key={p.id}
+              onClick={() => openProfile(p)}
+              style={{
+                ...S.card, cursor:'pointer', transition:'transform 0.15s, box-shadow 0.15s',
+                display:'flex', flexDirection:'column', gap: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(15,23,42,0.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow=''; }}
+            >
+              {/* Card top */}
+              <div style={{ display:'flex', alignItems:'flex-start', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 46, height: 46, borderRadius: 12, background: color,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: 17, fontWeight: 700, color: '#fff', flexShrink: 0,
+                }}>{initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a',
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{p.category?.nom || '—'}</div>
+                </div>
+                <div style={{
+                  width: 9, height: 9, borderRadius: '50%', flexShrink: 0, marginTop: 4,
+                  background: p.availability ? '#10b981' : '#e2e8f0',
+                  boxShadow: p.availability ? '0 0 0 3px #d1fae5' : 'none',
+                }} title={p.availability ? 'Disponible' : 'Indisponible'} />
+              </div>
+
+              {/* Bio */}
+              <p style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.5, margin: '0 0 12px',
+                display:'-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient:'vertical', overflow:'hidden', minHeight: 38 }}>
+                {p.bio || 'Aucune description pour le moment.'}
+              </p>
+
+              {/* Footer */}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                paddingTop: 10, borderTop:'1px solid #f1f5f9', marginTop:'auto' }}>
+                <span style={{ fontSize: 12, fontWeight: 500,
+                  color: p.availability ? '#10b981' : '#94a3b8' }}>
+                  {p.availability ? '● Disponible' : '○ Indisponible'}
+                </span>
+                {rating ? (
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f59e0b' }}>
+                    ★ {rating}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 12, color: '#cbd5e1' }}>Pas encore noté</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Profile modal */}
+      {selected && (
+        <div style={S.modal} onClick={e => e.target === e.currentTarget && setSelected(null)}>
+          <div style={{ ...S.modalBox, maxWidth: 520 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 20 }}>
+              <div style={{ display:'flex', gap: 14, alignItems:'center' }}>
+                <div style={{
+                  width: 54, height: 54, borderRadius: 14, background: getColor(selected.name),
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: 20, fontWeight: 700, color:'#fff',
+                }}>
+                  {selected.name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color:'#0f172a' }}>{selected.name}</div>
+                  <div style={{ fontSize: 13, color:'#64748b', marginTop: 2 }}>{selected.category?.nom}</div>
+                </div>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background:'none', border:'none',
+                fontSize:20, color:'#94a3b8', cursor:'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display:'flex', gap: 8, marginBottom: 16, flexWrap:'wrap' }}>
+              <span style={{ ...S.btn('ghost'), padding:'4px 12px', fontSize:12, borderRadius:20,
+                background: selected.availability ? '#d1fae5' : '#f1f5f9',
+                color: selected.availability ? '#059669' : '#94a3b8' }}>
+                {selected.availability ? '● Disponible' : '○ Indisponible'}
+              </span>
+              {avgRating(selected.user_id) && (
+                <span style={{ padding:'4px 12px', fontSize:12, borderRadius:20,
+                  background:'#fef9c3', color:'#a16207', fontWeight:600 }}>
+                  ★ {avgRating(selected.user_id)} / 5
+                </span>
+              )}
+            </div>
+
+            {selected.bio && (
+              <p style={{ fontSize: 13.5, color:'#475569', lineHeight: 1.6, marginBottom: 18 }}>{selected.bio}</p>
+            )}
+
+            {/* Avis */}
+            {(avis[selected.user_id] || []).length > 0 && (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 700, color:'#94a3b8', textTransform:'uppercase',
+                  letterSpacing:'0.08em', marginBottom: 10 }}>
+                  Avis clients ({avis[selected.user_id].length})
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap: 10, marginBottom: 18 }}>
+                  {avis[selected.user_id].slice(0,3).map(a => (
+                    <div key={a.id} style={{ background:'#f8fafc', borderRadius: 8, padding:'10px 12px' }}>
+                      <StarRating value={a.note} />
+                      <p style={{ margin:'4px 0 0', fontSize:12.5, color:'#64748b' }}>
+                        {a.commentaire || <em>Sans commentaire</em>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button style={{ ...S.btn(), width:'100%', padding:'11px', fontSize:14 }}
+              onClick={() => { setSelected(null); onNewDemande(); }}>
+              Publier une demande à ce prestataire
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
    CLIENT SECTIONS
 ═════════════════════════════════════════════════════════════════*/
 
@@ -822,6 +1079,7 @@ function NotificationsPanel({ onClose }) {
 ═════════════════════════════════════════════════════════════════*/
 
 const CLIENT_MENU = [
+  { key:'feed',      icon:'⊹',  label:'Accueil' },
   { key:'overview',  icon:'▦',  label:'Tableau de bord' },
   { key:'demandes',  icon:'≡',  label:'Mes demandes' },
   { key:'offres',    icon:'✉',  label:'Offres reçues' },
@@ -841,7 +1099,10 @@ const PRES_MENU = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => user()); // stable reference — read once on mount
-  const [section, setSection] = useState('overview');
+  const [section, setSection] = useState(() => {
+    const u = JSON.parse(localStorage.getItem('user') || 'null');
+    return u?.role === 'client' ? 'feed' : 'overview';
+  });
   const [showNotif, setShowNotif] = useState(false);
 
   // shared data
@@ -913,6 +1174,7 @@ export default function Dashboard() {
   const renderSection = () => {
     if (section === 'compte') return <MonCompte />;
     if (isClient) {
+      if (section === 'feed')     return <ClientFeed categories={categories} onNewDemande={() => setSection('demandes')} />;
       if (section === 'overview') return <ClientOverview demandes={demandes} offres={offres} />;
       if (section === 'demandes') return <ClientDemandes demandes={demandes} categories={categories}
         onCreated={loadData} onDeleted={id => setDemandes(d => d.filter(x => x.id !== id))} />;

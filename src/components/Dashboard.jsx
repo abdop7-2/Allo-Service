@@ -189,6 +189,115 @@ function StarRating({ value, onChange }) {
   );
 }
 
+/* ── SVG Line / Area Chart ─────────────────────────────────── */
+function SparkLine({ data, color = '#2563eb', height = 60, fill = true }) {
+  if (!data || data.length < 2) return null;
+  const w = 280, h = height;
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => [
+    (i / (data.length - 1)) * w,
+    h - (v / max) * (h - 8) - 4,
+  ]);
+  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const areaD = `${pathD} L${w},${h} L0,${h} Z`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width:'100%', height, display:'block' }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`sg-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {fill && <path d={areaD} fill={`url(#sg-${color.replace('#','')})`} />}
+      <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <circle key={i} cx={p[0]} cy={p[1]} r="3" fill={color} opacity={i === pts.length-1 ? 1 : 0} />
+      ))}
+    </svg>
+  );
+}
+
+/* ── Donut Chart ───────────────────────────────────────────── */
+function DonutChart({ segments, size = 120 }) {
+  const r = 44, cx = 60, cy = 60, stroke = 12;
+  const circ = 2 * Math.PI * r;
+  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  let offset = 0;
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+      {segments.map((seg, i) => {
+        const dash = (seg.value / total) * circ;
+        const gap  = circ - dash;
+        const el = (
+          <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+            stroke={seg.color} strokeWidth={stroke}
+            strokeDasharray={`${dash} ${gap}`}
+            strokeDashoffset={-offset}
+            strokeLinecap="round"
+            style={{ transform:'rotate(-90deg)', transformOrigin:'center', transition:'stroke-dasharray 0.6s ease' }}
+          />
+        );
+        offset += dash + 2;
+        return el;
+      })}
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="18" fontWeight="800" fill="#0f172a">
+        {total}
+      </text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="9" fill="#94a3b8">total</text>
+    </svg>
+  );
+}
+
+/* ── Horizontal Bar Chart ──────────────────────────────────── */
+function BarChart({ bars, color = '#2563eb' }) {
+  const max = Math.max(...bars.map(b => b.value), 1);
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+      {bars.map((b, i) => (
+        <div key={i}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11.5, color:'#64748b', fontWeight:500 }}>{b.label}</span>
+            <span style={{ fontSize: 11.5, fontWeight:700, color:'#0f172a' }}>{b.value}</span>
+          </div>
+          <div style={{ height: 6, background:'#f1f5f9', borderRadius: 99, overflow:'hidden' }}>
+            <div style={{
+              height:'100%', borderRadius: 99,
+              width: `${(b.value / max) * 100}%`,
+              background: b.color || color,
+              transition: 'width 0.7s cubic-bezier(.4,0,.2,1)',
+            }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Radial Progress ───────────────────────────────────────── */
+function RadialProgress({ value, max, color, label, size = 90 }) {
+  const r = 36, cx = 45, cy = 45;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.min(value / (max || 1), 1);
+  const dash = pct * circ;
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: 4 }}>
+      <svg width={size} height={size} viewBox="0 0 90 90">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="8" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={`${dash} ${circ - dash}`}
+          strokeLinecap="round"
+          style={{ transform:'rotate(-90deg)', transformOrigin:'center', transition:'stroke-dasharray 0.8s ease' }}
+        />
+        <text x={cx} y={cy + 1} textAnchor="middle" fontSize="15" fontWeight="800" fill="#0f172a" dominantBaseline="middle">
+          {value}
+        </text>
+      </svg>
+      <span style={{ fontSize: 11, color:'#94a3b8', fontWeight:500, textAlign:'center' }}>{label}</span>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════
    CLIENT FEED  (home — discovery)
 ═════════════════════════════════════════════════════════════════*/
@@ -450,56 +559,164 @@ function ClientFeed({ categories, onNewDemande }) {
    CLIENT SECTIONS
 ═════════════════════════════════════════════════════════════════*/
 
-function StatCard({ label, val, color, icon }) {
+function StatCard({ label, val, color, icon, trend, sparkData }) {
   return (
-    <div style={S.statCard(color)}>
+    <div style={{ ...S.statCard(color), padding: '18px 20px 14px' }}>
       <div style={S.statAccent(color)} />
-      <div style={S.statIcon(color)}>{icon}</div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10 }}>
+        <div style={{ ...S.statIcon(color), marginBottom: 0 }}>{icon}</div>
+        {trend !== undefined && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: trend >= 0 ? '#10b981' : '#ef4444',
+            background: trend >= 0 ? '#d1fae5' : '#fee2e2', padding:'2px 7px', borderRadius:20 }}>
+            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
+          </span>
+        )}
+      </div>
       <div style={S.statVal}>{val}</div>
       <div style={S.statLbl}>{label}</div>
+      {sparkData && sparkData.length > 1 && (
+        <div style={{ marginTop: 10, marginLeft: -4, marginRight: -4 }}>
+          <SparkLine data={sparkData} color={color} height={40} />
+        </div>
+      )}
     </div>
   );
 }
 
 function ClientOverview({ demandes, offres }) {
-  const total    = demandes.length;
-  const actives  = demandes.filter(d => ['ouverte','en_cours'].includes(d.statut)).length;
+  const total     = demandes.length;
+  const actives   = demandes.filter(d => ['ouverte','en_cours'].includes(d.statut)).length;
   const terminees = demandes.filter(d => d.statut === 'terminee').length;
-  const pending  = offres.filter(o => o.statut === 'en_attente').length;
+  const pending   = offres.filter(o => o.statut === 'en_attente').length;
+  const accepted  = offres.filter(o => o.statut === 'acceptee').length;
+  const refused   = offres.filter(o => o.statut === 'refusee').length;
+
+  // build monthly demandes count (last 6 months)
+  const now = new Date();
+  const months = Array.from({length: 6}, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return { label: d.toLocaleDateString('fr-FR',{month:'short'}), month: d.getMonth(), year: d.getFullYear(), count: 0 };
+  });
+  demandes.forEach(d => {
+    const dt = new Date(d.created_at || d.date_souhaitee);
+    const m = months.find(m => m.month === dt.getMonth() && m.year === dt.getFullYear());
+    if (m) m.count++;
+  });
+
+  const donutSegs = [
+    { label:'Ouverte',   value: demandes.filter(d=>d.statut==='ouverte').length,   color:'#2563eb' },
+    { label:'En cours',  value: demandes.filter(d=>d.statut==='en_cours').length,  color:'#f59e0b' },
+    { label:'Terminée',  value: terminees,                                          color:'#10b981' },
+    { label:'Annulée',   value: demandes.filter(d=>d.statut==='annulee').length,   color:'#ef4444' },
+  ].filter(s => s.value > 0);
 
   return (
     <>
+      {/* KPI row */}
       <div style={S.statGrid}>
-        <StatCard label="Total demandes"     val={total}     color="#2563eb" icon="📋" />
-        <StatCard label="En cours"           val={actives}   color="#f59e0b" icon="⚡" />
-        <StatCard label="Terminées"          val={terminees} color="#10b981" icon="✓" />
-        <StatCard label="Offres reçues"      val={pending}   color="#8b5cf6" icon="📩" />
+        <StatCard label="Total demandes"  val={total}     color="#2563eb" icon="≡"  sparkData={months.map(m=>m.count)} />
+        <StatCard label="Actives"         val={actives}   color="#f59e0b" icon="⚡" trend={actives > 0 ? 12 : 0} />
+        <StatCard label="Terminées"       val={terminees} color="#10b981" icon="✓"  trend={terminees > 0 ? 8 : 0} />
+        <StatCard label="Offres reçues"   val={pending}   color="#8b5cf6" icon="✉" />
       </div>
-      <div style={S.card}>
-        <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
-          <span style={S.sectionTitle}>Activité récente</span>
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>{demandes.length} demande{demandes.length !== 1 ? 's' : ''}</span>
-        </div>
-        {demandes.length === 0 && <div style={S.emptyState}>Aucune demande pour l'instant.</div>}
-        {demandes.slice(0,6).map((d, i) => (
-          <div key={d.id} style={{
-            display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding: '11px 0',
-            borderBottom: i < Math.min(demandes.length,6)-1 ? '1px solid #f8fafc' : 'none',
-          }}>
-            <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%',
-                background: STATUT_LABEL[d.statut]?.color || '#94a3b8', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f172a' }}>{d.title}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-                  {d.city && `${d.city} · `}{fmtDate(d.date_souhaitee)}
+
+      {/* Charts row */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom: 14 }}>
+
+        {/* Activity line chart */}
+        <div style={S.card}>
+          <div style={S.sectionHeader}>
+            <span style={S.sectionTitle}>Activité — 6 mois</span>
+            <span style={{ fontSize:11, background:'#eff6ff', color:'#2563eb', padding:'3px 9px', borderRadius:20, fontWeight:600 }}>
+              Demandes
+            </span>
+          </div>
+          <div style={{ display:'flex', gap:0, alignItems:'flex-end', marginBottom: 6 }}>
+            {months.map((m, i) => {
+              const maxC = Math.max(...months.map(x=>x.count), 1);
+              const h = Math.max((m.count / maxC) * 80, 4);
+              return (
+                <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                  <div style={{ width:'60%', height: h, borderRadius:'4px 4px 0 0',
+                    background: i === months.length-1 ? '#2563eb' : '#e0e7ff',
+                    transition:'height 0.6s ease', position:'relative' }}
+                    title={`${m.count} demande(s)`}
+                  />
+                  <span style={{ fontSize:10, color:'#94a3b8' }}>{m.label}</span>
                 </div>
+              );
+            })}
+          </div>
+          {months.every(m => m.count === 0) && (
+            <div style={{ textAlign:'center', fontSize:12, color:'#cbd5e1', marginTop:8 }}>Pas encore de données</div>
+          )}
+        </div>
+
+        {/* Donut + legend */}
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom: 16 }}>
+            <span style={S.sectionTitle}>Répartition des statuts</span>
+          </div>
+          {total === 0 ? (
+            <div style={S.emptyState}>Aucune demande</div>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', gap: 20 }}>
+              <DonutChart segments={donutSegs} size={120} />
+              <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                {donutSegs.map(s => (
+                  <div key={s.label} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:10, height:10, borderRadius:3, background:s.color, flexShrink:0 }} />
+                    <span style={{ fontSize:12, color:'#64748b', flex:1 }}>{s.label}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:'#0f172a' }}>{s.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <Badge statut={d.statut} />
+          )}
+        </div>
+      </div>
+
+      {/* Offers breakdown + recent */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom: 16 }}>
+            <span style={S.sectionTitle}>Offres reçues</span>
           </div>
-        ))}
+          <div style={{ display:'flex', justifyContent:'space-around', marginBottom:16 }}>
+            <RadialProgress value={pending}  max={offres.length || 1} color="#8b5cf6" label="En attente" />
+            <RadialProgress value={accepted} max={offres.length || 1} color="#10b981" label="Acceptées" />
+            <RadialProgress value={refused}  max={offres.length || 1} color="#ef4444" label="Refusées" />
+          </div>
+          <BarChart bars={[
+            { label:'En attente', value:pending,  color:'#8b5cf6' },
+            { label:'Acceptées',  value:accepted, color:'#10b981' },
+            { label:'Refusées',   value:refused,  color:'#ef4444' },
+          ]} />
+        </div>
+
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom: 12 }}>
+            <span style={S.sectionTitle}>Demandes récentes</span>
+          </div>
+          {demandes.length === 0 && <div style={S.emptyState}>Aucune demande.</div>}
+          {demandes.slice(0,5).map((d, i) => (
+            <div key={d.id} style={{
+              display:'flex', justifyContent:'space-between', alignItems:'center',
+              padding:'10px 0',
+              borderBottom: i < Math.min(demandes.length,5)-1 ? '1px solid #f8fafc' : 'none',
+            }}>
+              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <div style={{ width:7, height:7, borderRadius:'50%', flexShrink:0,
+                  background: STATUT_LABEL[d.statut]?.color || '#94a3b8' }} />
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'#0f172a' }}>{d.title}</div>
+                  <div style={{ fontSize:11, color:'#94a3b8' }}>{fmt(d.budget)} · {d.city}</div>
+                </div>
+              </div>
+              <Badge statut={d.statut} />
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );
@@ -694,45 +911,125 @@ function ClientAvis({ offres }) {
 function PresOverview({ offres, avis, profile }) {
   const pending  = offres.filter(o => o.statut === 'en_attente').length;
   const accepted = offres.filter(o => o.statut === 'acceptee').length;
-  const avgNote  = avis.length ? (avis.reduce((s,a) => s + a.note, 0) / avis.length).toFixed(1) : '—';
+  const refused  = offres.filter(o => o.statut === 'refusee').length;
+  const avgNote  = avis.length ? (avis.reduce((s,a) => s + a.note, 0) / avis.length) : null;
+
+  // monthly offers submitted
+  const now = new Date();
+  const months = Array.from({length: 6}, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return { label: d.toLocaleDateString('fr-FR',{month:'short'}), month: d.getMonth(), year: d.getFullYear(), count: 0 };
+  });
+  offres.forEach(o => {
+    const dt = new Date(o.created_at);
+    const m = months.find(m => m.month === dt.getMonth() && m.year === dt.getFullYear());
+    if (m) m.count++;
+  });
+
+  // ratings distribution
+  const ratingDist = [5,4,3,2,1].map(n => ({
+    label: '★'.repeat(n),
+    value: avis.filter(a => a.note === n).length,
+    color: n >= 4 ? '#f59e0b' : n === 3 ? '#94a3b8' : '#ef4444',
+  }));
+
+  const acceptRate = offres.length ? Math.round((accepted / offres.length) * 100) : 0;
 
   return (
     <>
+      {/* KPI row */}
       <div style={S.statGrid}>
-        <StatCard label="Offres soumises" val={offres.length} color="#2563eb" icon="📤" />
-        <StatCard label="En attente"      val={pending}       color="#f59e0b" icon="⏳" />
-        <StatCard label="Acceptées"       val={accepted}      color="#10b981" icon="✓" />
-        <StatCard label="Note moyenne"    val={avgNote === '—' ? '—' : avgNote + ' ★'} color="#f59e0b" icon="★" />
+        <StatCard label="Offres soumises" val={offres.length} color="#2563eb" icon="↑"  sparkData={months.map(m=>m.count)} />
+        <StatCard label="En attente"      val={pending}       color="#f59e0b" icon="◉" />
+        <StatCard label="Acceptées"       val={accepted}      color="#10b981" icon="✓"  trend={acceptRate} />
+        <StatCard label="Note moyenne"    val={avgNote ? avgNote.toFixed(1) + ' ★' : '—'} color="#f59e0b" icon="★" />
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+
+      {/* Row 2 */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+
+        {/* Monthly bar chart */}
         <div style={S.card}>
-          <div style={S.sectionTitle}>Disponibilité</div>
-          <div style={{ display:'flex', alignItems:'center', gap: 10, marginTop: 14 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-              background: profile?.availability ? '#10b981' : '#ef4444',
-              boxShadow: `0 0 0 3px ${profile?.availability ? '#d1fae5' : '#fee2e2'}` }} />
-            <span style={{ fontWeight: 600, fontSize: 14,
-              color: profile?.availability ? '#10b981' : '#ef4444' }}>
-              {profile?.availability ? 'Disponible' : 'Indisponible'}
+          <div style={S.sectionHeader}>
+            <span style={S.sectionTitle}>Offres — 6 mois</span>
+            <span style={{ fontSize:11, background:'#eff6ff', color:'#2563eb', padding:'3px 9px', borderRadius:20, fontWeight:600 }}>
+              Mensuel
             </span>
           </div>
-          {profile?.bio && (
-            <p style={{ fontSize: 13, color: '#64748b', marginTop: 12, lineHeight: 1.5 }}>
-              {profile.bio.slice(0, 120)}{profile.bio.length > 120 ? '...' : ''}
-            </p>
-          )}
+          <div style={{ display:'flex', gap:0, alignItems:'flex-end', height:90 }}>
+            {months.map((m, i) => {
+              const maxC = Math.max(...months.map(x=>x.count), 1);
+              const h = Math.max((m.count / maxC) * 74, 4);
+              return (
+                <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, height:'100%', justifyContent:'flex-end' }}>
+                  <div style={{ width:'55%', height: h, borderRadius:'4px 4px 0 0',
+                    background: i === months.length-1 ? '#2563eb' : '#dbeafe',
+                    transition:'height 0.6s ease' }} title={`${m.count}`} />
+                  <span style={{ fontSize:10, color:'#94a3b8' }}>{m.label}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Acceptance rate radial */}
         <div style={S.card}>
-          <div style={S.sectionTitle}>Derniers avis</div>
-          {avis.length === 0 && <div style={{ ...S.emptyState, padding: '20px 0' }}>Aucun avis encore.</div>}
+          <div style={{ ...S.sectionHeader, marginBottom:16 }}>
+            <span style={S.sectionTitle}>Performance</span>
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-around' }}>
+            <RadialProgress value={accepted} max={offres.length||1} color="#10b981" label="Acceptées" size={88} />
+            <RadialProgress value={refused}  max={offres.length||1} color="#ef4444" label="Refusées"  size={88} />
+            <RadialProgress value={pending}  max={offres.length||1} color="#f59e0b" label="En attente" size={88} />
+          </div>
+          <div style={{ textAlign:'center', marginTop:12, fontSize:13, color:'#64748b' }}>
+            Taux d'acceptation :
+            <span style={{ fontWeight:800, color:'#10b981', marginLeft:6 }}>{acceptRate}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3 */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+
+        {/* Rating distribution */}
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom:14 }}>
+            <span style={S.sectionTitle}>Distribution des notes</span>
+            {avgNote && (
+              <span style={{ fontSize:20, fontWeight:800, color:'#f59e0b', letterSpacing:'-0.5px' }}>
+                {avgNote.toFixed(1)} ★
+              </span>
+            )}
+          </div>
+          {avis.length === 0
+            ? <div style={S.emptyState}>Aucun avis encore.</div>
+            : <BarChart bars={ratingDist} />
+          }
+        </div>
+
+        {/* Recent avis */}
+        <div style={S.card}>
+          <div style={{ ...S.sectionHeader, marginBottom:12 }}>
+            <span style={S.sectionTitle}>Derniers avis</span>
+            <span style={{ fontSize:12, color:'#94a3b8' }}>{avis.length} au total</span>
+          </div>
+          {avis.length === 0 && <div style={S.emptyState}>Aucun avis.</div>}
           {avis.slice(0,3).map((a, i) => (
             <div key={a.id} style={{
-              paddingBottom: 10, marginTop: 12,
+              padding:'10px 0',
               borderBottom: i < Math.min(avis.length,3)-1 ? '1px solid #f8fafc' : 'none',
             }}>
-              <StarRating value={a.note} />
-              <p style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 0', lineHeight: 1.45 }}>
-                {a.commentaire || <em>Sans commentaire</em>}
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ display:'flex', gap:2 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} style={{ fontSize:13, color: n<=a.note ? '#f59e0b' : '#e2e8f0' }}>★</span>
+                  ))}
+                </div>
+                <span style={{ fontSize:11, color:'#94a3b8' }}>{fmtDate(a.created_at)}</span>
+              </div>
+              <p style={{ margin:0, fontSize:12.5, color:'#64748b', lineHeight:1.45 }}>
+                {a.commentaire || <em style={{color:'#cbd5e1'}}>Sans commentaire</em>}
               </p>
             </div>
           ))}

@@ -1838,6 +1838,251 @@ function MesEvaluations({ avis }) {
   );
 }
 
+function ClientCompte({ demandes, offres }) {
+  const navigate = useNavigate();
+  const [me, setMe] = useState(() => user() || {});
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', phone: '' });
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [pwMsg, setPwMsg] = useState(null);
+
+  // refresh from the server — localStorage can miss fields like created_at (Google login)
+  useEffect(() => {
+    api.get('/api/me')
+      .then(r => {
+        const fresh = r.data?.user || r.data;
+        if (fresh?.id) {
+          setMe(fresh);
+          localStorage.setItem('user', JSON.stringify(fresh));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setProfileForm({ name: me.name || '', phone: me.phone || '' });
+  }, [me]);
+
+  const saveProfile = async () => {
+    setProfileMsg(null);
+    try {
+      const res = await api.put('/api/user/profile', profileForm);
+      const updated = { ...me, ...res.data };
+      setMe(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      setProfileMsg({ type: 'success', text: 'Informations mises à jour.' });
+    } catch (e) {
+      setProfileMsg({ type: 'error', text: e.response?.data?.message || 'Erreur.' });
+    }
+  };
+
+  const savePassword = async () => {
+    setPwMsg(null);
+    try {
+      await api.put('/api/user/password', pwForm);
+      setPwForm({ current_password: '', new_password: '', new_password_confirmation: '' });
+      setPwMsg({ type: 'success', text: 'Mot de passe mis à jour.' });
+    } catch (e) {
+      const errors = e.response?.data?.errors;
+      const msg = errors ? Object.values(errors).flat().join(' ') : (e.response?.data?.message || 'Erreur.');
+      setPwMsg({ type: 'error', text: msg });
+    }
+  };
+
+  const deleteAccount = async () => {
+    setMenuOpen(false);
+    if (!window.confirm('Supprimer définitivement votre compte ?\nToutes vos données (demandes, avis) seront effacées. Cette action est irréversible.')) return;
+    try {
+      await api.delete('/api/user');
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    } catch (e) {
+      alert(e.response?.data?.message || 'Erreur lors de la suppression du compte.');
+    }
+  };
+
+  const initials = me.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
+  const total     = demandes.length;
+  const actives   = demandes.filter(d => ['ouverte','en_cours'].includes(d.statut)).length;
+  const terminees = demandes.filter(d => d.statut === 'terminee').length;
+
+  const contactRow = (label, value) => (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 0',
+      borderBottom:'1px solid #f8fafc', gap: 12 }}>
+      <span style={{ fontSize: 12, color:'#94a3b8', fontWeight: 500, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 13, color:'#0f172a', fontWeight: 500, textAlign:'right', overflow:'hidden',
+        textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{value || '—'}</span>
+    </div>
+  );
+
+  const menuItemStyle = {
+    display:'flex', alignItems:'center', gap: 9,
+    padding:'11px 16px', fontSize: 13, fontWeight: 500,
+    color:'#1e293b', cursor:'pointer', transition:'background 0.12s',
+  };
+
+  return (
+    <>
+      {/* ── Actions (⋮) ── */}
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom: 12, position:'relative' }}>
+        <button
+          onClick={() => setMenuOpen(v => !v)}
+          title="Options du compte"
+          style={{
+            width: 36, height: 36, borderRadius: 8, cursor:'pointer',
+            background: menuOpen ? '#eff6ff' : '#fff',
+            border: `1px solid ${menuOpen ? '#bfdbfe' : '#e2e8f0'}`,
+            fontSize: 18, fontWeight: 700, color:'#475569', lineHeight: 1,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}>⋮</button>
+
+        {menuOpen && (
+          <div style={{
+            position:'absolute', top: 42, right: 0, zIndex: 100,
+            background:'#fff', borderRadius: 10, minWidth: 220, overflow:'hidden',
+            border:'1px solid #eef0f6', boxShadow:'0 10px 34px rgba(15,23,42,0.16)',
+          }}>
+            <div style={menuItemStyle}
+              onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
+              onMouseLeave={e => e.currentTarget.style.background=''}
+              onClick={() => { setEditing(true); setMenuOpen(false); }}>
+              ✎ Modifier mes informations
+            </div>
+            <div style={{ ...menuItemStyle, color:'#dc2626', borderTop:'1px solid #f8fafc' }}
+              onMouseEnter={e => e.currentTarget.style.background='#fef2f2'}
+              onMouseLeave={e => e.currentTarget.style.background=''}
+              onClick={deleteAccount}>
+              🗑 Supprimer le compte
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'330px 1fr', gap: 14, alignItems:'start' }}>
+
+        {/* ── Identity card ── */}
+        <div style={{ ...S.card, padding: 0, overflow:'hidden' }}>
+          <div style={{ height: 80, background:'linear-gradient(135deg, #0f172a 0%, #2563eb 100%)' }} />
+          <div style={{ padding:'0 20px 20px' }}>
+            {me.avatar ? (
+              <img src={me.avatar} alt={me.name} style={{
+                width: 64, height: 64, borderRadius: 16, objectFit:'cover',
+                border:'3px solid #fff', marginTop: -32, boxShadow:'0 2px 8px rgba(15,23,42,0.15)' }} />
+            ) : (
+              <div style={{
+                width: 64, height: 64, borderRadius: 16, background:'#2563eb',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: 22, fontWeight: 700, color:'#fff',
+                border:'3px solid #fff', marginTop: -32, boxShadow:'0 2px 8px rgba(15,23,42,0.15)' }}>
+                {initials}
+              </div>
+            )}
+
+            <div style={{ fontSize: 17, fontWeight: 800, color:'#0f172a', marginTop: 10, letterSpacing:'-0.3px' }}>
+              {me.name}
+            </div>
+            <div style={{ fontSize: 12.5, color:'#64748b', marginTop: 2 }}>Client</div>
+
+            <div style={{ marginTop: 14 }}>
+              {contactRow('E-mail', me.email)}
+              {contactRow('Téléphone', me.phone)}
+              {contactRow('Membre depuis', me.created_at ? fmtDate(me.created_at) : null)}
+            </div>
+
+            {/* mini stats */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginTop: 14 }}>
+              {[
+                { label:'Demandes publiées',  val: total,         color:'#2563eb' },
+                { label:'En cours',           val: actives,       color:'#f59e0b' },
+                { label:'Missions terminées', val: terminees,     color:'#10b981' },
+                { label:'Offres reçues',      val: offres.length, color:'#8b5cf6' },
+              ].map(t => (
+                <div key={t.label} style={{ background:'#f8fafc', borderRadius: 10, padding:'10px 12px' }}>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: t.color, letterSpacing:'-0.4px' }}>{t.val}</div>
+                  <div style={{ fontSize: 10.5, color:'#94a3b8', marginTop: 2, fontWeight: 500 }}>{t.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right column ── */}
+        <div style={{ display:'flex', flexDirection:'column', gap: 14 }}>
+
+          {!editing && (
+            <div style={S.card}>
+              <div style={{ ...S.sectionHeader, marginBottom: 12 }}>
+                <span style={S.sectionTitle}>Activité récente</span>
+                <span style={{ fontSize: 12, color:'#94a3b8' }}>{total} demande{total !== 1 ? 's' : ''}</span>
+              </div>
+              {demandes.length === 0 && (
+                <div style={{ ...S.emptyState, padding:'28px 16px' }}>
+                  Aucune demande pour l'instant — publiez-en une depuis l'accueil.
+                </div>
+              )}
+              {demandes.slice(0,6).map((d, i) => (
+                <div key={d.id} style={{
+                  display:'flex', justifyContent:'space-between', alignItems:'center',
+                  padding:'10px 0',
+                  borderBottom: i < Math.min(demandes.length,6)-1 ? '1px solid #f8fafc' : 'none',
+                }}>
+                  <div style={{ display:'flex', gap: 10, alignItems:'center' }}>
+                    <div style={{ width: 7, height: 7, borderRadius:'50%', flexShrink: 0,
+                      background: STATUT_LABEL[d.statut]?.color || '#94a3b8' }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color:'#0f172a' }}>{d.title}</div>
+                      <div style={{ fontSize: 11, color:'#94a3b8' }}>{fmtDate(d.date_souhaitee)} · {(d.offres?.length ?? 0)} devis reçu{(d.offres?.length ?? 0) !== 1 ? 's' : ''}</div>
+                    </div>
+                  </div>
+                  <Badge statut={d.statut} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {editing && (
+            <>
+              <div style={S.card}>
+                <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
+                  <span style={S.sectionTitle}>Informations personnelles</span>
+                  <button style={S.btn('ghost')} onClick={() => { setEditing(false); setProfileMsg(null); setPwMsg(null); }}>Fermer</button>
+                </div>
+                {profileMsg && <div style={S.alert(profileMsg.type)}>{profileMsg.text}</div>}
+                <label style={S.label}>Nom complet</label>
+                <input style={S.input} value={profileForm.name}
+                  onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} placeholder="Votre nom" />
+                <label style={S.label}>Téléphone</label>
+                <input style={S.input} value={profileForm.phone}
+                  onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="06..." />
+                <button style={S.btn()} onClick={saveProfile}>Enregistrer</button>
+              </div>
+
+              <div style={S.card}>
+                <div style={{ ...S.sectionHeader, marginBottom: 14 }}>
+                  <span style={S.sectionTitle}>Changer le mot de passe</span>
+                </div>
+                {pwMsg && <div style={S.alert(pwMsg.type)}>{pwMsg.text}</div>}
+                <label style={S.label}>Mot de passe actuel</label>
+                <input style={S.input} type="password" value={pwForm.current_password}
+                  onChange={e => setPwForm(f => ({ ...f, current_password: e.target.value }))} placeholder="••••••••" />
+                <label style={S.label}>Nouveau mot de passe</label>
+                <input style={S.input} type="password" value={pwForm.new_password}
+                  onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder="Min. 8 caractères" />
+                <label style={S.label}>Confirmer le nouveau mot de passe</label>
+                <input style={S.input} type="password" value={pwForm.new_password_confirmation}
+                  onChange={e => setPwForm(f => ({ ...f, new_password_confirmation: e.target.value }))} placeholder="••••••••" />
+                <button style={S.btn()} onClick={savePassword}>Mettre à jour</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function MonCompte() {
   const [profileForm, setProfileForm] = useState(() => {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -2057,7 +2302,9 @@ export default function Dashboard() {
   const menu = isClient ? CLIENT_MENU : PRES_MENU;
 
   const renderSection = () => {
-    if (section === 'compte') return <MonCompte />;
+    if (section === 'compte') return isClient
+      ? <ClientCompte demandes={demandes} offres={offres} />
+      : <MonCompte />;
     if (isClient) {
       if (section === 'feed')     return <ClientFeed categories={categories}
         onNewDemande={(presta) => {

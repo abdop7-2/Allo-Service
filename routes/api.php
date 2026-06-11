@@ -9,6 +9,7 @@ use App\Http\Controllers\PrestataireController;
 use App\Models\Category;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SocialAuthController;
 
 // ─── Public ───────────────────────────────────
 Route::get('/categories', fn() => response()->json(Category::all()));
@@ -18,6 +19,10 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login',    [AuthController::class, 'login']);
 });
+
+// Google OAuth (browser redirect flow)
+Route::get('/auth/google',          [SocialAuthController::class, 'redirect']);
+Route::get('/auth/google/callback', [SocialAuthController::class, 'callback']);
 
 // ─── Routes protégées (token requis) ──────────
 Route::middleware('auth:sanctum')->group(function () {

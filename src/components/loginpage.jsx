@@ -67,9 +67,9 @@ const LoginPage = () => {
         .auth-page {
           background: linear-gradient(to right, #e2e2e2, #c9d6ff);
           display: flex;
-          align-items: center;
-          justify-content: center;
           min-height: 100vh;
+          padding: 40px 16px;
+          box-sizing: border-box;
           font-family: 'Montserrat', sans-serif;
         }
 
@@ -88,7 +88,8 @@ const LoginPage = () => {
           overflow: hidden;
           width: 768px;
           max-width: 100%;
-          min-height: 480px;
+          min-height: 560px;
+          margin: auto; /* centers when there's room, stays scrollable when there isn't */
         }
 
         .auth-container p {

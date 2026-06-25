@@ -1,0 +1,47 @@
+.git
+.gitignore
+.gitattributes
+.github
+
+# PHP / Laravel
+vendor
+node_modules
+storage/*.key
+storage/pail
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+.phpunit.result.cache
+.phpunit.cache
+
+# Frontend (built and shipped from its own image/context)
+allo-frontend
+map-components
+
+# Local / editor noise
+.idea
+.vscode
+.fleet
+.nova
+.zed
+*.log
+Homestead.json
+Homestead.yaml
+
+# Docker
+docker-compose*.yml
+README.md
+DOCKER.md
+
+# Loose front-end prototype files at the repo root
+auth-form.html
+revisioneff.html
+index.html
+login.html
+AuthForm.css
+style.css
+script.js
+ssl_test.php
+ssl_test2.php

@@ -1,0 +1,71 @@
+# Distribution compose file — uses PRE-BUILT images from a registry.
+# Your friend only needs this one file + Docker. No source code required.
+#
+#   DOCKERHUB_USER=yourname TAG=1.0 docker compose -f docker-compose.dist.yml up -d
+#
+# (PowerShell: set $env:DOCKERHUB_USER="yourname"; $env:TAG="1.0"  first.)
+
+name: allo-services
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: allo_service
+      MYSQL_USER: allo
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    image: ${DOCKERHUB_USER:-YOURNAME}/allo-backend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: allo_service
+      DB_USERNAME: allo
+      DB_PASSWORD: secret
+      RUN_SEED: "true"
+    ports:
+      - "8000:80"
+
+  queue:
+    image: ${DOCKERHUB_USER:-YOURNAME}/allo-backend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: allo_service
+      DB_USERNAME: allo
+      DB_PASSWORD: secret
+      SKIP_INIT: "true"
+    command: php artisan queue:work --tries=3 --timeout=90
+
+  frontend:
+    image: ${DOCKERHUB_USER:-YOURNAME}/allo-frontend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:

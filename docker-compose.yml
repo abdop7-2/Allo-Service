@@ -1,0 +1,76 @@
+name: allo-services
+
+services:
+  # ── MySQL database ───────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: allo_service
+      MYSQL_USER: allo
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"          # host 3307 to avoid clashing with a local MySQL
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  # ── Laravel API (Apache + PHP-FPM mod_php) ───────────────────
+  backend:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: allo_service
+      DB_USERNAME: allo
+      DB_PASSWORD: secret
+      RUN_SEED: "true"        # seeds once, only while the DB is still empty
+    ports:
+      - "8000:80"
+
+  # ── Queue worker (shares the backend image) ──────────────────
+  queue:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: allo_service
+      DB_USERNAME: allo
+      DB_PASSWORD: secret
+      SKIP_INIT: "true"       # don't run migrations/seed from the worker
+    command: php artisan queue:work --tries=3 --timeout=90
+
+  # ── React frontend (static build served by nginx) ────────────
+  frontend:
+    build:
+      context: ./allo-frontend
+      args:
+        REACT_APP_API_URL: http://localhost:8000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:

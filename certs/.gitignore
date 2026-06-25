@@ -1,0 +1,3 @@
+# Local TLS-intercepting proxy CA(s) — machine-specific, never commit.
+*.crt
+!.gitkeep

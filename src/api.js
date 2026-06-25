@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://morale-bacterium-avid.ngrok-free.dev',
+  baseURL: process.env.REACT_APP_API_URL || 'https://morale-bacterium-avid.ngrok-free.dev',
   headers: { Accept: 'application/json', 'ngrok-skip-browser-warning': 'true' },
 });
 

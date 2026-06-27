@@ -20,26 +20,71 @@ const STATS = [
   { value: 12000, sep: true, suffix: "+", label: "Missions réalisées" },
 ];
 
+/* ── Line icons for the steps (inherit color via currentColor) ── */
+const Icon = ({ children }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
+  </svg>
+);
+const IconDescribe = () => (
+  <Icon><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></Icon>
+);
+const IconOffers = () => (
+  <Icon><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" /><path d="m3 6.5 9 6 9-6" /></Icon>
+);
+const IconChoose = () => (
+  <Icon><path d="M15 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="m15.5 11 2 2 4-4" /></Icon>
+);
+const IconReview = () => (
+  <Icon>
+    <path d="M21 14a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" />
+    <path d="m12.2 6.7 1.15 2.35 2.6.38-1.88 1.83.44 2.58-2.31-1.22-2.32 1.22.45-2.58-1.88-1.83 2.6-.38z"
+          fill="currentColor" stroke="none" />
+  </Icon>
+);
+
 const HOW_IT_WORKS = [
   {
-    img: null, // TODO: replace with your image, e.g. import step1 from '../assets/step1.jpg'
+    n: 1,
+    icon: IconDescribe,
     title: "Décrivez votre besoin",
-    desc: "Publiez votre demande en quelques secondes : type de travaux, budget, date souhaitée.",
+    points: [
+      "Publiez votre demande en quelques secondes.",
+      "Indiquez le type de travaux (plomberie, électricité, peinture, etc.).",
+      "Précisez votre budget et la date souhaitée.",
+      "Ajoutez des détails ou des photos si besoin.",
+    ],
   },
   {
-    img: null, // TODO: replace with your image
+    n: 2,
+    icon: IconOffers,
     title: "Recevez des offres",
-    desc: "Des prestataires qualifiés près de chez vous vous envoient leurs devis directement.",
+    points: [
+      "Des prestataires qualifiés près de chez vous voient votre demande.",
+      "Ils vous envoient leurs devis directement via la plateforme.",
+      "Comparez les offres reçues en toute transparence.",
+    ],
   },
   {
-    img: null, // TODO: replace with your image
+    n: 3,
+    icon: IconChoose,
     title: "Choisissez & confirmez",
-    desc: "Comparez les profils, les notes et les prix, puis acceptez l'offre qui vous convient.",
+    points: [
+      "Comparez les profils, les notes, les avis et les prix.",
+      "Échangez avec les prestataires si besoin.",
+      "Choisissez l'offre qui vous convient et confirmez la mission.",
+    ],
   },
   {
-    img: null, // TODO: replace with your image
+    n: 4,
+    icon: IconReview,
     title: "Évaluez le service",
-    desc: "Une fois la mission terminée, laissez un avis pour aider la communauté.",
+    points: [
+      "Une fois la mission terminée, laissez un avis pour aider la communauté.",
+      "Notez la qualité du travail, le respect des délais et le professionnalisme.",
+      "Votre avis aide d'autres utilisateurs à faire le bon choix.",
+    ],
   },
 ];
 
@@ -174,22 +219,23 @@ export default function AlloServiceLanding() {
           professionnel près de chez vous et suivez votre mission de bout en bout.
         </p>
         <div className="as-grid">
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={i} className="as-card">
-              <div className="as-img-placeholder">
-                {step.img
-                  ? <img src={step.img} alt={step.title} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} />
-                  : null
-                }
+          {HOW_IT_WORKS.map((step) => {
+            const StepIcon = step.icon;
+            return (
+              <div key={step.n} className="as-step">
+                <div className="as-step__head">
+                  <span className="as-step__num">{step.n}</span>
+                  <span className="as-step__icon"><StepIcon /></span>
+                </div>
+                <h3 className="as-step__title">{step.title}</h3>
+                <ul className="as-step__list">
+                  {step.points.map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
               </div>
-              <h3 style={{ color: "#fff", margin: "14px 0 8px", fontSize: "clamp(15px,2.5vw,17px)" }}>
-                {step.title}
-              </h3>
-              <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "clamp(13px,2vw,15px)", lineHeight: 1.55, margin: 0 }}>
-                {step.desc}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div style={{ textAlign: "center", marginTop: 44 }}>
           <button

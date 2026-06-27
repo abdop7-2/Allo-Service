@@ -3,6 +3,7 @@ import LandingPage from './components/LandingPage';
 import LoginPage from './components/loginpage';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
+import ResetPassword from './components/ResetPassword';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/"              element={<LandingPage />} />
         <Route path="/login"         element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>

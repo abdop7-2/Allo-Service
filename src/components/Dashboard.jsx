@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import Messages from './Messages';
+import AdminPanel from './admin/AdminPanel';
+import ReportButton from './ReportButton';
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 const user = () => JSON.parse(localStorage.getItem('user') || 'null');
@@ -44,140 +47,153 @@ function Badge({ statut }) {
 const S = {
   layout: {
     display: 'flex', minHeight: '100vh',
-    fontFamily: "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif",
-    background: '#f7f8fc',
+    fontFamily: 'var(--font)',
+    background: 'var(--bg)', color: 'var(--text)',
   },
   sidebar: {
-    width: 256, background: '#0f172a', color: '#fff',
+    width: 258,
+    background: 'linear-gradient(180deg, #111c30 0%, #0b1220 100%)',
+    color: '#fff',
     display: 'flex', flexDirection: 'column',
     position: 'sticky', top: 0, height: '100vh', flexShrink: 0,
-    borderRight: '1px solid rgba(255,255,255,0.04)',
+    borderRight: '1px solid rgba(255,255,255,0.05)',
   },
   logoWrap: {
-    padding: '28px 24px 22px',
+    padding: '26px 22px 20px',
     borderBottom: '1px solid rgba(255,255,255,0.07)',
   },
   logoText: {
-    fontSize: 19, fontWeight: 800, letterSpacing: '-0.4px',
+    fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px',
     color: '#fff',
   },
-  logoAccent: { color: '#4f8ef7' },
-  logoSub: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3, letterSpacing: '0.04em' },
+  logoAccent: { color: 'var(--accent)' },
+  logoSub: { fontSize: 10.5, color: 'rgba(255,255,255,0.42)', marginTop: 4, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 },
   userChip: {
-    margin: '14px 16px 6px',
+    margin: '16px 14px 4px',
     background: 'rgba(255,255,255,0.06)',
-    borderRadius: 10, padding: '10px 14px',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: 12, padding: '11px 13px',
     display: 'flex', alignItems: 'center', gap: 10,
   },
   avatar: (color) => ({
-    width: 34, height: 34, borderRadius: 10,
+    width: 36, height: 36, borderRadius: 11,
     background: color, display: 'flex', alignItems: 'center',
     justifyContent: 'center', fontSize: 14, fontWeight: 700,
     color: '#fff', flexShrink: 0,
+    boxShadow: `0 5px 14px -4px ${color}99`,
   }),
-  navSection: { padding: '18px 12px 6px 16px', fontSize: 10, fontWeight: 700,
-    color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase' },
+  navSection: { padding: '20px 14px 8px 18px', fontSize: 10, fontWeight: 700,
+    color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em', textTransform: 'uppercase' },
   navItem: (active) => ({
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '9px 12px', margin: '1px 8px',
-    cursor: 'pointer', borderRadius: 8,
-    background: active ? 'rgba(79,142,247,0.15)' : 'transparent',
-    color: active ? '#4f8ef7' : 'rgba(255,255,255,0.6)',
-    fontSize: 13.5, fontWeight: active ? 600 : 400,
-    transition: 'all 0.15s',
+    display: 'flex', alignItems: 'center', gap: 11,
+    padding: '10px 13px', margin: '2px 10px',
+    cursor: 'pointer', borderRadius: 10,
+    background: active ? 'color-mix(in srgb, var(--accent) 20%, transparent)' : 'transparent',
+    color: active ? '#fff' : 'rgba(255,255,255,0.62)',
+    fontSize: 13.5, fontWeight: active ? 600 : 500,
+    transition: 'all 0.16s var(--ease)',
     letterSpacing: '-0.1px',
+    boxShadow: active ? 'inset 3px 0 0 var(--accent)' : 'none',
   }),
   navIcon: { fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 },
-  main: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' },
+  main: { flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 },
   topbar: {
-    padding: '18px 32px',
-    background: '#fff',
-    borderBottom: '1px solid #eef0f6',
+    padding: '15px 30px',
+    background: 'rgba(255,255,255,0.82)',
+    backdropFilter: 'saturate(180%) blur(10px)',
+    WebkitBackdropFilter: 'saturate(180%) blur(10px)',
+    borderBottom: '1px solid var(--border)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     position: 'sticky', top: 0, zIndex: 10,
   },
-  pageTitle: { fontSize: 17, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.3px' },
-  content: { padding: '28px 32px', flex: 1 },
+  pageTitle: { fontSize: 18, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.4px' },
+  content: { padding: '26px 30px', flex: 1 },
+  title: { fontSize: 20, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.4px' },
   card: {
-    background: '#fff', borderRadius: 12, padding: '20px 22px',
-    border: '1px solid #eef0f6',
-    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+    background: 'var(--surface)', borderRadius: 16, padding: '20px 22px',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--sh-sm)',
   },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 24 },
   statCard: (color) => ({
-    background: '#fff', borderRadius: 12, padding: '18px 20px',
-    border: '1px solid #eef0f6',
-    boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
+    background: 'var(--surface)', borderRadius: 16, padding: '18px 20px',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--sh-sm)',
     position: 'relative', overflow: 'hidden',
   }),
   statAccent: (color) => ({
     position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    background: color, borderRadius: '12px 12px 0 0',
+    background: color, borderRadius: '16px 16px 0 0',
   }),
-  statVal: { fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1, letterSpacing: '-0.5px' },
-  statLbl: { fontSize: 12, color: '#94a3b8', marginTop: 5, fontWeight: 500 },
+  statVal: { fontSize: 27, fontWeight: 800, color: 'var(--text)', lineHeight: 1, letterSpacing: '-0.6px' },
+  statLbl: { fontSize: 12, color: 'var(--muted)', marginTop: 6, fontWeight: 500 },
   statIcon: (color) => ({
-    width: 36, height: 36, borderRadius: 9, background: color + '15',
+    width: 38, height: 38, borderRadius: 11, background: color + '18',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 16, marginBottom: 12,
+    fontSize: 17, marginBottom: 12,
   }),
-  btn: (variant = 'primary') => ({
-    padding: variant === 'sm' ? '6px 13px' : '9px 17px',
-    borderRadius: 7, border: 'none', cursor: 'pointer',
-    fontWeight: 600, fontSize: variant === 'sm' ? 12 : 13,
-    letterSpacing: '-0.1px',
-    background: variant === 'primary' ? '#2563eb'
-      : variant === 'danger'  ? '#fee2e2'
-      : variant === 'success' ? '#dcfce7'
-      : variant === 'ghost'   ? '#f1f5f9'
-      : '#f1f5f9',
-    color: variant === 'primary' ? '#fff'
-      : variant === 'danger'  ? '#dc2626'
-      : variant === 'success' ? '#16a34a'
-      : '#374151',
-    transition: 'all 0.15s',
-  }),
-  input: {
-    width: '100%', padding: '9px 12px', borderRadius: 7,
-    border: '1.5px solid #e2e8f0', fontSize: 13.5,
-    outline: 'none', background: '#fff', marginBottom: 12,
-    boxSizing: 'border-box', color: '#0f172a',
-    transition: 'border-color 0.15s',
+  btn: (variant = 'primary') => {
+    const sm = variant === 'sm';
+    return {
+      padding: sm ? '7px 14px' : '10px 18px',
+      borderRadius: sm ? 9 : 11, border: 'none', cursor: 'pointer',
+      fontWeight: 600, fontSize: sm ? 12 : 13.5, letterSpacing: '-0.1px',
+      fontFamily: 'var(--font)',
+      background: variant === 'primary' ? 'var(--accent)'
+        : variant === 'danger'  ? 'var(--error-bg)'
+        : variant === 'success' ? 'var(--success-bg)'
+        : '#eef2f7',
+      backgroundImage: variant === 'primary'
+        ? 'linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent))' : 'none',
+      color: variant === 'primary' ? '#fff'
+        : variant === 'danger'  ? 'var(--error)'
+        : variant === 'success' ? 'var(--success)'
+        : 'var(--text-2)',
+      boxShadow: variant === 'primary' ? 'var(--sh-accent)' : 'none',
+      transition: 'all 0.15s var(--ease)',
+    };
   },
-  label: { fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 5, letterSpacing: '0.02em' },
+  input: {
+    width: '100%', padding: '10px 13px', borderRadius: 10,
+    border: '1.5px solid var(--border)', fontSize: 13.5,
+    outline: 'none', background: 'var(--surface)', marginBottom: 12,
+    boxSizing: 'border-box', color: 'var(--text)',
+    transition: 'all 0.15s var(--ease)', fontFamily: 'var(--font)',
+  },
+  label: { fontSize: 12, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 6, letterSpacing: '0.01em' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
   th: {
     textAlign: 'left', padding: '11px 16px', fontSize: 11,
-    fontWeight: 700, color: '#94a3b8',
-    borderBottom: '1px solid #f1f5f9',
+    fontWeight: 700, color: 'var(--muted)',
+    borderBottom: '1px solid var(--border-2)',
     textTransform: 'uppercase', letterSpacing: '0.07em',
-    background: '#fafbfd',
+    background: 'var(--surface-2)',
   },
-  td: { padding: '13px 16px', borderBottom: '1px solid #f8fafc', color: '#1e293b', verticalAlign: 'middle' },
+  td: { padding: '13px 16px', borderBottom: '1px solid var(--border-2)', color: 'var(--text)', verticalAlign: 'middle' },
   modal: {
-    position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)',
+    position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 1000, backdropFilter: 'blur(4px)',
+    zIndex: 1000, backdropFilter: 'blur(5px)', padding: 20,
   },
   modalBox: {
-    background: '#fff', borderRadius: 16, padding: '28px 30px',
+    background: 'var(--surface)', borderRadius: 20, padding: '26px 28px',
     width: '100%', maxWidth: 490, maxHeight: '90vh', overflowY: 'auto',
-    boxShadow: '0 20px 60px rgba(15,23,42,0.18)',
+    boxShadow: 'var(--sh-lg)', border: '1px solid var(--border)',
   },
   alert: (type) => ({
-    padding: '11px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13,
+    padding: '11px 14px', borderRadius: 10, marginBottom: 14, fontSize: 13,
     fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8,
-    background: type === 'error' ? '#fef2f2' : '#f0fdf4',
-    color: type === 'error' ? '#dc2626' : '#16a34a',
+    background: type === 'error' ? 'var(--error-bg)' : 'var(--success-bg)',
+    color: type === 'error' ? 'var(--error)' : 'var(--success)',
     border: `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`,
   }),
   sectionHeader: {
     display: 'flex', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 18,
   },
-  sectionTitle: { fontSize: 15, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.2px' },
+  sectionTitle: { fontSize: 16, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' },
   emptyState: {
-    textAlign: 'center', padding: '48px 24px', color: '#94a3b8', fontSize: 13.5,
+    textAlign: 'center', padding: '48px 24px', color: 'var(--muted)', fontSize: 13.5,
   },
 };
 
@@ -310,7 +326,7 @@ function RadialProgress({ value, max, color, label, size = 90 }) {
    CLIENT FEED  (home — discovery)
 ═════════════════════════════════════════════════════════════════*/
 
-function ClientFeed({ categories, onNewDemande }) {
+function ClientFeed({ categories, onNewDemande, onMessage }) {
   const [prestataires, setPrestataires] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [catFilter, setCatFilter]       = useState('');
@@ -481,7 +497,9 @@ function ClientFeed({ categories, onNewDemande }) {
                 )}
                 <div style={{ flex: 1, minWidth: 0, paddingRight: fresh ? 64 : 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a',
-                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {p.name}{p.is_verified && <span title="Prestataire vérifié" style={{ color:'#0ea5e9', marginLeft:4 }}>✓</span>}
+                  </div>
                   <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{p.category?.nom || '—'}</div>
                 </div>
               </div>
@@ -541,6 +559,7 @@ function ClientFeed({ categories, onNewDemande }) {
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                     <span style={{ fontSize: 18, fontWeight: 700, color:'#0f172a' }}>{selected.name}</span>
+                    {selected.is_verified && <span title="Prestataire vérifié" style={{ color:'#0ea5e9', fontSize:16 }}>✓</span>}
                     {fresh && (
                       <span style={{ background:'#dcfce7', color:'#16a34a', fontSize:10, fontWeight:700,
                         padding:'2px 7px', borderRadius:6, textTransform:'uppercase' }}>Nouveau</span>
@@ -622,10 +641,20 @@ function ClientFeed({ categories, onNewDemande }) {
               </div>
             )}
 
-            <button style={{ ...S.btn(), width:'100%', padding:'11px', fontSize:14 }}
-              onClick={() => { const p = selected; setSelected(null); onNewDemande(p); }}>
-              Publier une demande à ce prestataire
-            </button>
+            <div style={{ display:'flex', gap: 10 }}>
+              <button style={{ flex:1, padding:'11px', fontSize:14, fontWeight:600, cursor:'pointer',
+                background:'#f1f5f9', color:'#334155', border:'1px solid #e2e8f0', borderRadius:10 }}
+                onClick={() => { const p = selected; setSelected(null); onMessage && onMessage(p); }}>
+                💬 Message
+              </button>
+              <button style={{ ...S.btn(), flex:2, padding:'11px', fontSize:14 }}
+                onClick={() => { const p = selected; setSelected(null); onNewDemande(p); }}>
+                Publier une demande
+              </button>
+            </div>
+            <div style={{ textAlign:'center', marginTop:12 }}>
+              <ReportButton type="user" id={selected.user_id} label="Signaler ce prestataire" />
+            </div>
           </div>
         </div>
         );
@@ -2174,6 +2203,9 @@ function NotificationsPanel({ onClose }) {
     offre_negociation: '💬',
     new_demande:       '📋',
     demande_directe:   '📌',
+    announcement:      '📢',
+    new_message:       '📨',
+    offre_revisee:     '🔄',
   };
 
   return (
@@ -2187,7 +2219,8 @@ function NotificationsPanel({ onClose }) {
         {loading && <p style={{ padding:20, color:'#94a3b8', fontSize:13 }}>Chargement...</p>}
         {!loading && items.length === 0 && <p style={{ padding:20, color:'#94a3b8', fontSize:13 }}>Aucune notification.</p>}
         {items.map((n, i) => (
-          <div key={i} style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc', display:'flex', gap:12, alignItems:'flex-start' }}>
+          <div key={i} style={{ padding:'14px 20px', borderBottom:'1px solid #f8fafc', display:'flex', gap:12, alignItems:'flex-start',
+            background: n.read ? 'transparent' : 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
             <span style={{ fontSize:20, flexShrink:0 }}>{TYPE_ICON[n.type] || '🔔'}</span>
             <div>
               <p style={{ margin:0, fontSize:13, color:'#1e293b', lineHeight:1.4 }}>{n.message}</p>
@@ -2210,6 +2243,7 @@ const CLIENT_MENU = [
   { key:'demandes',  icon:'≡',  label:'Mes demandes' },
   { key:'offres',    icon:'✉',  label:'Offres reçues' },
   { key:'avis',      icon:'★',  label:'Laisser un avis' },
+  { key:'messages',  icon:'💬', label:'Messages' },
   { key:'compte',    icon:'◎',  label:'Mon compte' },
 ];
 
@@ -2220,7 +2254,22 @@ const PRES_MENU = [
   { key:'mesoffres', icon:'↑',  label:'Mes offres' },
   { key:'profil',    icon:'◉',  label:'Mon profil' },
   { key:'evals',     icon:'★',  label:'Mes évaluations' },
+  { key:'messages',  icon:'💬', label:'Messages' },
   { key:'compte',    icon:'◎',  label:'Mon compte' },
+];
+
+const ADMIN_MENU = [
+  { key:'overview',         icon:'▦',  label:'Tableau de bord' },
+  { key:'admin_users',      icon:'◍',  label:'Utilisateurs' },
+  { key:'admin_demandes',   icon:'≡',  label:'Demandes' },
+  { key:'admin_offres',     icon:'✉',  label:'Offres' },
+  { key:'admin_avis',       icon:'★',  label:'Avis' },
+  { key:'admin_categories', icon:'⊞',  label:'Catégories' },
+  { key:'admin_announce',   icon:'📢', label:'Annonces' },
+  { key:'admin_reports',    icon:'⚑',  label:'Signalements' },
+  { key:'admin_audit',      icon:'☰',  label:'Journal' },
+  { key:'messages',         icon:'💬', label:'Mes messages' },
+  { key:'compte',           icon:'◎',  label:'Mon compte' },
 ];
 
 export default function Dashboard() {
@@ -2231,6 +2280,9 @@ export default function Dashboard() {
     return u?.role === 'client' ? 'feed' : 'overview';
   });
   const [showNotif, setShowNotif] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [messageTarget, setMessageTarget] = useState(null);
   // set when the client clicks "publier une demande" from the feed —
   // opens the form directly, optionally locked to a prestataire's category
   const [demandeIntent, setDemandeIntent] = useState(null);
@@ -2283,6 +2335,30 @@ export default function Dashboard() {
     loadData();
   }, [loadData]);
 
+  // poll unread message + notification counts for the topbar badges
+  useEffect(() => {
+    const poll = () => {
+      api.get('/api/conversations/unread-count').then(r => setUnread(r.data?.count || 0)).catch(() => {});
+      api.get('/api/notifications/unread-count').then(r => setNotifUnread(r.data?.count || 0)).catch(() => {});
+    };
+    poll();
+    const t = setInterval(poll, 10000);
+    return () => clearInterval(t);
+  }, []);
+
+  // open the notifications panel and mark everything read
+  const toggleNotif = () => {
+    const opening = !showNotif;
+    setShowNotif(opening);
+    if (opening && notifUnread > 0) {
+      api.post('/api/notifications/read').catch(() => {});
+      setNotifUnread(0);
+    }
+  };
+
+  // jump to the messaging section, optionally opening a chat with a specific user
+  const openMessages = (targetUser = null) => { setMessageTarget(targetUser); setSection('messages'); };
+
   const logout = () => {
     api.post('/api/logout').finally(() => { localStorage.clear(); navigate('/login'); });
   };
@@ -2299,14 +2375,18 @@ export default function Dashboard() {
   if (!currentUser) return null;
 
   const isClient = currentUser.role === 'client';
-  const menu = isClient ? CLIENT_MENU : PRES_MENU;
+  const isAdmin = currentUser.role === 'admin';
+  const menu = isAdmin ? ADMIN_MENU : isClient ? CLIENT_MENU : PRES_MENU;
 
   const renderSection = () => {
+    if (section === 'messages') return <Messages accent={avatarColor} startWith={messageTarget} />;
     if (section === 'compte') return isClient
       ? <ClientCompte demandes={demandes} offres={offres} />
       : <MonCompte />;
+    if (isAdmin) return <AdminPanel section={section} />;
     if (isClient) {
       if (section === 'feed')     return <ClientFeed categories={categories}
+        onMessage={(p) => openMessages({ id: p.user_id, name: p.name, avatar: p.avatar, role: 'prestataire' })}
         onNewDemande={(presta) => {
           setDemandeIntent({
             categoryId: presta?.category_id || null,
@@ -2333,18 +2413,18 @@ export default function Dashboard() {
   };
 
   const initials = currentUser.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
-  const avatarColor = isClient ? '#2563eb' : '#0d9488';
+  const avatarColor = isAdmin ? '#7c3aed' : isClient ? '#2563eb' : '#0d9488';
   const currentLabel = menu.find(m => m.key === section)?.label || 'Mon compte';
 
   return (
-    <div style={S.layout}>
+    <div style={S.layout} className={`role-${currentUser.role}`}>
       {/* ── Sidebar ── */}
       <aside style={S.sidebar}>
         <div style={S.logoWrap}>
           <div style={S.logoText}>
             Allo<span style={S.logoAccent}>Service</span>
           </div>
-          <div style={S.logoSub}>{isClient ? 'Espace client' : 'Espace prestataire'}</div>
+          <div style={S.logoSub}>{isAdmin ? 'Espace admin' : isClient ? 'Espace client' : 'Espace prestataire'}</div>
         </div>
 
         <div style={S.userChip}>
@@ -2353,21 +2433,23 @@ export default function Dashboard() {
             <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap',
               overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.name}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-              {isClient ? 'Client' : 'Prestataire'}
+              {isAdmin ? 'Admin' : isClient ? 'Client' : 'Prestataire'}
             </div>
           </div>
         </div>
 
-        <div style={S.navSection}>Navigation</div>
-        {menu.map(m => (
-          <div key={m.key} style={S.navItem(section === m.key)} onClick={() => setSection(m.key)}>
-            <span style={S.navIcon}>{m.icon}</span>
-            {m.label}
-          </div>
-        ))}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: 6 }}>
+          <div style={S.navSection}>Navigation</div>
+          {menu.map(m => (
+            <div key={m.key} style={S.navItem(section === m.key)} onClick={() => setSection(m.key)}>
+              <span style={S.navIcon}>{m.icon}</span>
+              {m.label}
+            </div>
+          ))}
+        </div>
 
-        <div style={{ marginTop:'auto', borderTop:'1px solid rgba(255,255,255,0.06)', padding: '12px 8px' }}>
-          <div style={{ ...S.navItem(false), color:'rgba(255,255,255,0.45)' }} onClick={logout}>
+        <div style={{ borderTop:'1px solid rgba(255,255,255,0.07)', padding: '12px 8px', flexShrink: 0 }}>
+          <div style={{ ...S.navItem(false), color:'rgba(255,255,255,0.55)' }} onClick={logout}>
             <span style={S.navIcon}>←</span> Déconnexion
           </div>
         </div>
@@ -2381,13 +2463,27 @@ export default function Dashboard() {
             <div style={S.pageTitle}>{currentLabel}</div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap: 10, position:'relative' }}>
-            <button onClick={() => setShowNotif(v => !v)} style={{
+            <button onClick={() => openMessages(null)} title="Messages" style={{
+              background: section === 'messages' ? '#eff6ff' : '#f8fafc',
+              border: `1px solid ${section === 'messages' ? '#bfdbfe' : '#e2e8f0'}`,
+              borderRadius: 8, width: 36, height: 36, cursor:'pointer', fontSize: 15,
+              display:'flex', alignItems:'center', justifyContent:'center', position:'relative',
+            }}>💬
+              {unread > 0 && <span style={{ position:'absolute', top:-5, right:-5, background:'#ef4444', color:'#fff',
+                fontSize:10, fontWeight:700, borderRadius:9, minWidth:17, height:17, display:'flex',
+                alignItems:'center', justifyContent:'center', padding:'0 4px', lineHeight:1 }}>{unread}</span>}
+            </button>
+            <button onClick={toggleNotif} title="Notifications" style={{
               background: showNotif ? '#eff6ff' : '#f8fafc',
               border: `1px solid ${showNotif ? '#bfdbfe' : '#e2e8f0'}`,
               borderRadius: 8, width: 36, height: 36, cursor:'pointer',
               fontSize: 15, display:'flex', alignItems:'center', justifyContent:'center',
-              transition: 'all 0.15s',
-            }}>🔔</button>
+              transition: 'all 0.15s', position:'relative',
+            }}>🔔
+              {notifUnread > 0 && <span style={{ position:'absolute', top:-5, right:-5, background:'#ef4444', color:'#fff',
+                fontSize:10, fontWeight:700, borderRadius:9, minWidth:17, height:17, display:'flex',
+                alignItems:'center', justifyContent:'center', padding:'0 4px', lineHeight:1 }}>{notifUnread}</span>}
+            </button>
             {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} />}
             <div style={{
               height: 36, display:'flex', alignItems:'center', gap: 8,
@@ -2401,7 +2497,7 @@ export default function Dashboard() {
         </div>
 
         {/* Page content */}
-        <div style={S.content}>
+        <div style={S.content} className="ds-fade" key={section}>
           {renderSection()}
         </div>
       </main>

@@ -4,10 +4,10 @@
 */
 
 .as-hero {
-  --teal: #2e5ee2;
-  --teal-dark: #3b86f7;
+  --teal: #14b8a6;
+  --teal-dark: #2dd4bf;
   --teal-darker: #08372a;
-  --teal-light: #9fe1cb;
+  --teal-light: #99f6e4;
 
   position: relative;
   min-height: 100svh;
@@ -45,8 +45,8 @@
   inset: 0;
   z-index: 1;
   background:
-    radial-gradient(120% 90% at 75% 15%, rgba(55, 29, 158, 0.18) 0%, transparent 55%),
-    linear-gradient(180deg, rgba(8, 55, 42, 0.55) 0%, rgba(18, 28, 168, 0.45) 40%, rgba(8, 55, 42, 0.92) 100%);
+    radial-gradient(120% 90% at 75% 15%, rgba(13, 148, 136, 0.20) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(8, 55, 42, 0.55) 0%, rgba(15, 118, 110, 0.45) 40%, rgba(8, 55, 42, 0.94) 100%);
   background-size: 200% 200%, 100% 100%;
   animation: as-drift 18s ease-in-out infinite alternate;
 }
@@ -132,7 +132,7 @@
 .as-btn--ghost:hover { background: rgba(255, 255, 255, 0.24); }
 .as-btn--solid {
   background: #fff;
-  color: var(--teal-dark);
+  color: #0d9488;
   padding: 10px 20px;
 }
 .as-btn--solid:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); transform: translateY(-2px); }

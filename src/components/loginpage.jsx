@@ -13,6 +13,11 @@ const LoginPage = () => {
   const [loginError, setLoginError]   = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  const [forgotOpen, setForgotOpen]     = useState(false);
+  const [forgotEmail, setForgotEmail]   = useState('');
+  const [forgotMsg, setForgotMsg]       = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
   const [regData, setRegData]       = useState({ name: '', email: '', phone: '', password: '' });
   const [regError, setRegError]     = useState('');
   const [regLoading, setRegLoading] = useState(false);
@@ -21,15 +26,21 @@ const LoginPage = () => {
   const handleLoginClick    = () => setIsActive(false);
 
   useEffect(() => {
-    if (searchParams.get('error') === 'google_failed') {
+    const err = searchParams.get('error');
+    if (err === 'google_failed') {
       setLoginError('La connexion avec Google a échoué. Veuillez réessayer.');
+    } else if (err === 'google_already_registered') {
+      setLoginError('Un compte existe déjà avec cette adresse Google. Connectez-vous ci-dessous.');
+      setIsActive(false); // switch to login panel
     }
   }, [searchParams]);
 
   // full-page navigation: the OAuth dance is handled by the backend
-  const googleLogin = (selectedRole) => {
-    const base = api.defaults.baseURL.replace(/\/$/, '');
-    window.location.href = `${base}/api/auth/google${selectedRole ? `?role=${selectedRole}` : ''}`;
+  const googleLogin = (selectedRole, action = 'login') => {
+    const base   = api.defaults.baseURL.replace(/\/$/, '');
+    const params = new URLSearchParams({ action });
+    if (selectedRole) params.set('role', selectedRole);
+    window.location.href = `${base}/api/auth/google?${params}`;
   };
 
   const handleLogin = async (e) => {
@@ -43,6 +54,17 @@ const LoginPage = () => {
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Email ou mot de passe incorrect.');
     } finally { setLoginLoading(false); }
+  };
+
+  const handleForgot = async (e) => {
+    e?.preventDefault();
+    setForgotMsg(''); setForgotLoading(true);
+    try {
+      const res = await api.post('/api/forgot-password', { email: forgotEmail });
+      setForgotMsg(res.data?.message || 'Si un compte existe, un lien a été envoyé.');
+    } catch {
+      setForgotMsg('Une erreur est survenue. Réessayez.');
+    } finally { setForgotLoading(false); }
   };
 
   const handleRegister = async (e) => {
@@ -62,15 +84,13 @@ const LoginPage = () => {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
-
         .auth-page {
-          background: linear-gradient(to right, #e2e2e2, #c9d6ff);
+          background: linear-gradient(135deg, #f0fdfa 0%, #eef2ff 55%, #e0f2fe 100%);
           display: flex;
           min-height: 100vh;
           padding: 40px 16px;
           box-sizing: border-box;
-          font-family: 'Montserrat', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
         }
 
         .auth-page *, .auth-page *::before, .auth-page *::after {
@@ -81,7 +101,7 @@ const LoginPage = () => {
 
         /* form controls don't inherit fonts; icons (<i>) keep the Font Awesome face */
         .auth-page input, .auth-page button, .auth-page select, .auth-page textarea {
-          font-family: 'Montserrat', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
         }
 
         .auth-container {
@@ -115,7 +135,7 @@ const LoginPage = () => {
         }
 
         .auth-container button {
-          background-color: #2da0a8;
+          background-color: #0d9488;
           color: #fff;
           font-size: 12px;
           padding: 10px 45px;
@@ -208,7 +228,7 @@ const LoginPage = () => {
         }
 
         .auth-toggle {
-          background: linear-gradient(to right, #5c6bc0, #2da0a8);
+          background: linear-gradient(135deg, #0f766e, #14b8a6);
           color: #fff;
           position: relative;
           left: -100%;
@@ -266,9 +286,9 @@ const LoginPage = () => {
         .auth-role-selector input[type="radio"] { display: none; }
 
         .auth-role-selector label.selected {
-          border-color: #2da0a8;
+          border-color: #0d9488;
           background-color: #e8f7f8;
-          color: #2da0a8;
+          color: #0d9488;
         }
 
         .auth-divider {
@@ -327,7 +347,7 @@ const LoginPage = () => {
 
         .auth-signin-footer a {
           margin: 0;
-          color: #2da0a8;
+          color: #0d9488;
           font-weight: 600;
         }
       `}</style>
@@ -357,7 +377,7 @@ const LoginPage = () => {
               <input type="password" placeholder="Mot de passe"          value={regData.password} onChange={e => setRegData(d => ({ ...d, password: e.target.value }))} required />
               <button type="submit" disabled={regLoading}>{regLoading ? 'Inscription...' : "S'inscrire"}</button>
               <div className="auth-divider"><span>ou</span></div>
-              <button type="button" className="auth-google-btn" onClick={() => googleLogin(role)}>
+              <button type="button" className="auth-google-btn" onClick={() => googleLogin(role, 'register')}>
                 <i className="fa-brands fa-google"></i> S'inscrire avec Google
               </button>
             </form>
@@ -371,10 +391,20 @@ const LoginPage = () => {
               {loginError && <p style={{ color: '#ef4444', fontSize: 12, margin: '4px 0', textAlign: 'center' }}>{loginError}</p>}
               <input type="email"    placeholder="Adresse e-mail" value={loginData.email}    onChange={e => setLoginData(d => ({ ...d, email: e.target.value }))}    required />
               <input type="password" placeholder="Mot de passe"   value={loginData.password} onChange={e => setLoginData(d => ({ ...d, password: e.target.value }))} required />
-              <a href="#">Mot de passe oublié ?</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); setForgotOpen((o) => !o); setForgotMsg(''); }}>Mot de passe oublié ?</a>
+              {forgotOpen && (
+                <div style={{ width: '100%', margin: '4px 0 8px' }}>
+                  <input type="email" placeholder="Votre e-mail" value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)} />
+                  <button type="button" onClick={handleForgot} disabled={forgotLoading} style={{ width: '100%', marginTop: 6 }}>
+                    {forgotLoading ? 'Envoi...' : 'Envoyer le lien'}
+                  </button>
+                  {forgotMsg && <p style={{ color: '#0d9488', fontSize: 12, margin: '6px 0 0', textAlign: 'center' }}>{forgotMsg}</p>}
+                </div>
+              )}
               <button type="submit" disabled={loginLoading}>{loginLoading ? 'Connexion...' : 'Se connecter'}</button>
               <div className="auth-divider"><span>ou</span></div>
-              <button type="button" className="auth-google-btn" onClick={() => googleLogin()}>
+              <button type="button" className="auth-google-btn" onClick={() => googleLogin(undefined, 'login')}>
                 <i className="fa-brands fa-google"></i> Continuer avec Google
               </button>
               <div className="auth-signin-footer">

@@ -1,0 +1,117 @@
+/* ============================================================
+   AlloService — Design System (generated from brand guidelines)
+   Tokens follow the `brand` skill methodology:
+   primary / secondary / neutral / semantic + 1.25 type scale.
+   ============================================================ */
+
+:root {
+  /* ── Brand (Teal) ───────────────────────────── */
+  --brand-50:  #f0fdfa;
+  --brand-100: #ccfbf1;
+  --brand-200: #99f6e4;
+  --brand-300: #5eead4;
+  --brand-400: #2dd4bf;
+  --brand-500: #14b8a6;
+  --brand-600: #0d9488;
+  --brand-700: #0f766e;
+  --brand-800: #115e59;
+  --brand-900: #134e4a;
+
+  /* ── Role accents ───────────────────────────── */
+  --client:        #2563eb;
+  --client-strong: #1d4ed8;
+  --presta:        #0d9488;
+  --presta-strong: #0f766e;
+  --admin:         #7c3aed;
+  --admin-strong:  #6d28d9;
+
+  /* Active accent — overridden per-role by .role-* */
+  --accent:        var(--brand-600);
+  --accent-strong: var(--brand-700);
+
+  /* ── Neutrals (slate) ───────────────────────── */
+  --bg:        #f4f7fb;
+  --surface:   #ffffff;
+  --surface-2: #f9fbfd;
+  --text:      #0f172a;
+  --text-2:    #475569;
+  --muted:     #94a3b8;
+  --border:    #e8edf3;
+  --border-2:  #eef2f7;
+
+  /* ── Semantic ───────────────────────────────── */
+  --success: #16a34a; --success-bg: #dcfce7;
+  --warning: #d97706; --warning-bg: #fef3c7;
+  --error:   #dc2626; --error-bg:   #fee2e2;
+  --info:    #2563eb; --info-bg:    #dbeafe;
+
+  /* ── Typography ─────────────────────────────── */
+  --font:         'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+
+  /* ── Radii ──────────────────────────────────── */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 28px;
+
+  /* ── Elevation (soft, layered) ──────────────── */
+  --sh-xs: 0 1px 2px rgba(15,23,42,.05);
+  --sh-sm: 0 1px 2px rgba(15,23,42,.06), 0 2px 8px rgba(15,23,42,.05);
+  --sh-md: 0 6px 18px rgba(15,23,42,.08), 0 1px 3px rgba(15,23,42,.05);
+  --sh-lg: 0 18px 44px rgba(15,23,42,.14);
+  --sh-accent: 0 8px 20px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+
+  --ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Per-role accent theming hook (set on the dashboard root) */
+.role-client      { --accent: var(--client); --accent-strong: var(--client-strong); }
+.role-prestataire { --accent: var(--presta); --accent-strong: var(--presta-strong); }
+.role-admin       { --accent: var(--admin);  --accent-strong: var(--admin-strong); }
+
+/* ── Base ─────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button, a, input, select, textarea { font-family: inherit; }
+
+/* ── Scrollbars ───────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1; border-radius: 99px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: content-box; }
+
+/* ── Selection + focus ────────────────────────── */
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Micro-interactions ───────────────────────── */
+button { transition: transform .12s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease), opacity .15s, filter .15s; }
+button:not(:disabled) { cursor: pointer; }
+button:not(:disabled):hover { filter: brightness(1.03); }
+button:not(:disabled):active { transform: translateY(1px); }
+
+/* Focus ring on form fields (external !important beats inline border on focus) */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent) !important;
+}
+
+/* ── Helpers ──────────────────────────────────── */
+.ds-lift { transition: transform .16s var(--ease), box-shadow .16s var(--ease); }
+.ds-lift:hover { transform: translateY(-3px); box-shadow: var(--sh-md); }
+
+@keyframes ds-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ds-fade { animation: ds-fade-in .35s var(--ease) both; }

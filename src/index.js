@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './design-system.css'; // imported last so tokens + base override Bootstrap
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
